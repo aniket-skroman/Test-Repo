@@ -11,4 +11,4 @@ cron:
    schedule: "0 0 * * *" 
  - name: "track-vehicle-alert"
    url: "/track-vehicle-alert"
-   schedule: "5 1 * * *"      
+   schedule: "5 * * * *"      

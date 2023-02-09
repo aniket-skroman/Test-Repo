@@ -158,13 +158,45 @@ type VehicleAlerts struct {
 	ISTTimeStamp string             `json:"ist_timestamp" bson:"ist_timestamp"`
 }
 
+type VehicleFallAlerts struct {
+	Id           primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	BikeNo       string             `json:"bike_no" bson:"bike_no"`
+	AlertCount   int64              `json:"alert_count" bson:"alert_count"`
+	BikeAngle    string             `json:"bike_angle" bson:"bike_angle"`
+	CreateAt     primitive.DateTime `json:"create_at" bson:"create_at"`
+	UpdateAt     primitive.DateTime `json:"update_at" bson:"update_at"`
+	ISTTimeStamp string             `json:"ist_timestamp" bson:"ist_timestamp"`
+}
+
 type VehicleAlertHistory struct {
 	Id               primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	BikeNo           string             `json:"bike_no" bson:"bike_no"`
 	AlertCount       int64              `json:"alert_count" bson:"alert_count"`
 	BikeSpeed        int64              `json:"bike_speed" bson:"bike_speed"`
+	AlertType        string             `json:"alert_type" bson:"alert_type"`
 	CreateAt         primitive.DateTime `json:"create_at" bson:"create_at"`
 	UpdateAt         primitive.DateTime `json:"update_at" bson:"update_at"`
 	ISTTimeStamp     string             `json:"ist_timestamp" bson:"ist_timestamp"`
 	HistoryTimestamp primitive.DateTime `json:"history_timestamp" bson:"history_timestamp"`
+}
+
+type VehicleFallAlertHistory struct {
+	Id               primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	BikeNo           string             `json:"bike_no" bson:"bike_no"`
+	AlertCount       int64              `json:"alert_count" bson:"alert_count"`
+	BikeAngle        string             `json:"bike_angle" bson:"bike_angle"`
+	AlertType        string             `json:"alert_type" bson:"alert_type"`
+	CreateAt         primitive.DateTime `json:"create_at" bson:"create_at"`
+	UpdateAt         primitive.DateTime `json:"update_at" bson:"update_at"`
+	ISTTimeStamp     string             `json:"ist_timestamp" bson:"ist_timestamp"`
+	HistoryTimestamp primitive.DateTime `json:"history_timestamp" bson:"history_timestamp"`
+}
+
+type AlertConfig struct {
+	Id          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	AlertType   string             `json:"alert_type" bson:"alert_type"`
+	Description string             `json:"description" bson:"description"`
+	Limit       int64              `json:"limit" bson:"limit"`
+	CreatedAt   primitive.DateTime `json:"createdAt" bson:"created_at"`
+	UpdatedAt   primitive.DateTime `json:"updatedAt" bson:"updated_at"`
 }
