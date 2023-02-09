@@ -122,7 +122,11 @@ func (db *vehiclerepository) UpdateVehicleData(vehicle models.VehiclesData) erro
 		bson.E{Key: "vehicleno", Value: vehicle.VehicleNo},
 	}
 
-	res := db.vehicleCollection.FindOneAndReplace(context.TODO(), filter, vehicle, opt)
+	vehicle.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	vehicle.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+	vehicle.TimeStamp = primitive.NewDateTimeFromTime(time.Now())
+
+	res := db.vehicleCollection.FindOneAndReplace(context.TODO(), filter, &vehicle, opt)
 	return res.Err()
 }
 

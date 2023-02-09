@@ -247,6 +247,7 @@ func main() {
 	})
 
 	router.POST("/get-vehicle-Info", func(ctx *gin.Context) {
+		fmt.Println("Get vehicle info cron run ...")
 		err := vehicleService.RefreshVehicleData()
 		fmt.Println(err)
 
@@ -254,7 +255,7 @@ func main() {
 
 	router.POST("/track-vehicle-alert", func(ctx *gin.Context) {
 		fmt.Println("tracker cron run..")
-		_ = vehicleService.TrackVehicleAlert()
+		// _ = vehicleService.TrackVehicleAlert()
 	})
 
 	router.POST("/alert-history", func(ctx *gin.Context) {
