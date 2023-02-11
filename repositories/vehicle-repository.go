@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"time"
 
 	dbconfig "github.com/aniket0951/testproject/db-config"
@@ -27,6 +28,7 @@ var vehicleAlertCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), 
 var vehicleAlertHistoryCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "alert_history")
 var alertMasterConfigCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "alert_config")
 var vehicleFallAlertCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "vehicle_fall_alerts")
+var testCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "test_collection")
 
 type VehicleRepository interface {
 	AddUpdateVehicleInformation(vehicleInfo models.VehiclesData)
@@ -44,8 +46,11 @@ type VehicleRepository interface {
 	CreateVehicleAlertHistory(vehicleAlerts []models.VehicleAlerts) error
 	CreateVehicleFallAlertHistory(vehicleAlerts []models.VehicleFallAlerts) error
 	DeleteTodayAlert(alertId primitive.ObjectID) error
+	DeleteTodayFallAlert(alertId primitive.ObjectID) error
 
-	GetAlertLimit(alertType string) (int, error)
+	GetAlertLimit(alertType string) (models.AlertConfig, error)
+
+	AddTestData(data models.TestModel) error
 }
 
 type vehiclerepository struct {
@@ -55,6 +60,7 @@ type vehiclerepository struct {
 	vehicleAlertHistoryConnection *mongo.Collection
 	alertConfigConnection         *mongo.Collection
 	vehicleFallAlertsConnection   *mongo.Collection
+	testConnection                *mongo.Collection
 }
 
 func NewVehicleRepository() VehicleRepository {
@@ -65,6 +71,7 @@ func NewVehicleRepository() VehicleRepository {
 		vehicleAlertHistoryConnection: vehicleAlertHistoryCollection,
 		alertConfigConnection:         alertMasterConfigCollection,
 		vehicleFallAlertsConnection:   vehicleFallAlertCollection,
+		testConnection:                testCollection,
 	}
 }
 
@@ -297,7 +304,7 @@ func (db *vehiclerepository) GetAllVehicleFallAlerts() ([]models.VehicleFallAler
 func (db *vehiclerepository) CreateVehicleAlertHistory(vehicleAlerts []models.VehicleAlerts) error {
 
 	for i := range vehicleAlerts {
-		if (models.VehicleAlerts{} == vehicleAlerts[i]) {
+		if (reflect.DeepEqual(models.VehicleAlerts{}, vehicleAlerts[i])) {
 			continue
 		} else {
 
@@ -327,7 +334,7 @@ func (db *vehiclerepository) CreateVehicleAlertHistory(vehicleAlerts []models.Ve
 func (db *vehiclerepository) CreateVehicleFallAlertHistory(vehicleAlerts []models.VehicleFallAlerts) error {
 
 	for i := range vehicleAlerts {
-		if (models.VehicleFallAlerts{} == vehicleAlerts[i]) {
+		if (reflect.DeepEqual(models.VehicleFallAlerts{}, vehicleAlerts[i])) {
 			continue
 		} else {
 
@@ -346,7 +353,7 @@ func (db *vehiclerepository) CreateVehicleFallAlertHistory(vehicleAlerts []model
 
 			fmt.Println("Insert Alert Result History => ", res)
 
-			_ = db.DeleteTodayAlert(vehicleAlerts[i].Id)
+			_ = db.DeleteTodayFallAlert(vehicleAlerts[i].Id)
 		}
 
 	}
@@ -367,7 +374,19 @@ func (db *vehiclerepository) DeleteTodayAlert(alertId primitive.ObjectID) error 
 	return err
 }
 
-func (db *vehiclerepository) GetAlertLimit(alertType string) (int, error) {
+func (db *vehiclerepository) DeleteTodayFallAlert(alertId primitive.ObjectID) error {
+	filter := bson.D{
+		bson.E{Key: "_id", Value: alertId},
+	}
+
+	res, err := db.vehicleFallAlertsConnection.DeleteOne(context.TODO(), filter)
+
+	fmt.Println("Delete alert history => ", res)
+
+	return err
+}
+
+func (db *vehiclerepository) GetAlertLimit(alertType string) (models.AlertConfig, error) {
 	filter := bson.D{
 		bson.E{Key: "alert_type", Value: alertType},
 	}
@@ -376,8 +395,32 @@ func (db *vehiclerepository) GetAlertLimit(alertType string) (int, error) {
 
 	res := db.alertConfigConnection.FindOne(context.TODO(), filter).Decode(&alertConfig)
 	if res != nil {
-		return 0, res
+		return models.AlertConfig{}, res
 	}
 
-	return int(alertConfig.Limit), nil
+	return alertConfig, nil
+}
+
+func (db *vehiclerepository) AddTestData(data models.TestModel) error {
+	filter := bson.D{
+		bson.E{Key: "test", Value: "test"},
+	}
+
+	update := bson.M{
+
+		"$push": bson.M{
+			"data": data.Data[1],
+		},
+	}
+
+	opt := options.Update().SetUpsert(true)
+
+	upRes, err := db.testConnection.UpdateOne(context.TODO(), filter, update, opt)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(upRes.MatchedCount, upRes.ModifiedCount)
+	return nil
 }

@@ -2,18 +2,18 @@ package services
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/aniket0951/testproject/models"
 	"github.com/aniket0951/testproject/repositories"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var wg sync.WaitGroup
-var angleLimitChannel int
 var overSpeedLimitChannel int
+var maxAngleLimit int
+var minAngleLimit int
 
 type VehicleServices interface {
 	AddUpdateVehicleInformation(vehicleInfo []models.VehiclesData) bool
@@ -25,6 +25,8 @@ type VehicleServices interface {
 	UpdateVehicleAlert(vehicleData models.VehicleAlerts) error
 	UpdateVehicleFallAlert(vehicleAlert models.VehicleFallAlerts) error
 	CreateVehicleAlertHistory() error
+
+	AddTestData(data models.TestModel)
 }
 
 type vehicleservice struct {
@@ -59,24 +61,24 @@ func (ser *vehicleservice) AddVehicleLocationData(vehicleLocation []models.Vehic
 }
 
 func (s *vehicleservice) RefreshVehicleData() error {
-	vehicleData, err := s.vehicleRepository.RefreshVehicleData()
+	// vehicleData, err := s.vehicleRepository.RefreshVehicleData()
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	fmt.Println("proxy data len => ", len(vehicleData))
+	// fmt.Println("proxy data len => ", len(vehicleData))
 
-	for i := range vehicleData {
-		vehicleData[i].TimeStamp = primitive.NewDateTimeFromTime(time.Now())
-		insErr := s.vehicleRepository.UpdateVehicleData(vehicleData[i])
+	// for i := range vehicleData {
+	// 	vehicleData[i].TimeStamp = primitive.NewDateTimeFromTime(time.Now())
+	// 	insErr := s.vehicleRepository.UpdateVehicleData(vehicleData[i])
 
-		if insErr != nil {
-			fmt.Println("Insert error => ", insErr)
-		}
-	}
+	// 	if insErr != nil {
+	// 		fmt.Println("Insert error => ", insErr)
+	// 	}
+	// }
 
-	serr := s.TrackVehicleAlert(vehicleData)
+	serr := s.TrackVehicleAlert([]models.VehiclesData{})
 	if serr != nil {
 		fmt.Println("Error trackVehicleAlert from background thread =>", serr)
 	}
@@ -85,22 +87,24 @@ func (s *vehicleservice) RefreshVehicleData() error {
 }
 
 func (s *vehicleservice) TrackVehicleAlert(vehicleData []models.VehiclesData) error {
-	var res int
+	var res models.AlertConfig
 	var err error
 	res, err = s.vehicleRepository.GetAlertLimit("overspeed")
 
 	if err != nil {
-		overSpeedLimitChannel = 0
+		overSpeedLimitChannel = 60
 	} else {
-		overSpeedLimitChannel = res
+		overSpeedLimitChannel = int(res.MaxLimit)
 	}
 
 	fallLimit, err := s.vehicleRepository.GetAlertLimit("fall")
 
 	if err != nil {
-		angleLimitChannel = 0
+		maxAngleLimit = 135
+		minAngleLimit = 45
 	} else {
-		angleLimitChannel = fallLimit
+		maxAngleLimit = int(fallLimit.MaxLimit)
+		minAngleLimit = int(fallLimit.MinLimit)
 	}
 
 	// res, err := s.vehicleRepository.TrackVehicleAlert()
@@ -112,10 +116,11 @@ func (s *vehicleservice) TrackVehicleAlert(vehicleData []models.VehiclesData) er
 
 	verErr := s.VerifyVehicleForAlert(vehicleData)
 	return verErr
+
 }
 
 func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData) error {
-	fmt.Println("Limit for over speed => ", overSpeedLimitChannel)
+	fmt.Println("Limit for over speed & angle => ", overSpeedLimitChannel, maxAngleLimit, minAngleLimit)
 	for i := range vehicleData {
 		speed, _ := strconv.Atoi(vehicleData[i].Speed)
 
@@ -124,28 +129,28 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 		if speed >= overSpeedLimitChannel {
 			vehicleAlertData, _ := s.vehicleRepository.GetVehicleAlertById(vehicleData[i].VehicleNo)
 
-			if (vehicleAlertData == models.VehicleAlerts{}) {
+			if reflect.DeepEqual(vehicleAlertData, models.VehicleAlerts{}) {
 				vehicleAlertData.BikeNo = vehicleData[i].VehicleNo
-				vehicleAlertData.BikeSpeed = int64(speed)
 			}
 
 			fmt.Println("Vehicle detect with high speed", vehicleAlertData)
-
+			vehicleAlertData.BikeSpeed = append(vehicleAlertData.BikeSpeed, speed)
 			upErr := s.UpdateVehicleAlert(vehicleAlertData)
 			if upErr != nil {
 				fmt.Println("Error occur for call update vehicle alert call", upErr)
 			}
 		}
 
-		if angel >= angleLimitChannel {
+		if angel < minAngleLimit && angel > maxAngleLimit {
 			vehicleAlertData, _ := s.vehicleRepository.GetVehicleFallAlertById(vehicleData[i].VehicleNo)
 
-			if (vehicleAlertData == models.VehicleFallAlerts{}) {
+			if reflect.DeepEqual(vehicleAlertData, models.VehicleFallAlerts{}) {
 				vehicleAlertData.BikeNo = vehicleData[i].VehicleNo
-				vehicleAlertData.BikeAngle = vehicleData[i].Angle
 			}
 
-			fmt.Println("Vehicle detect with fall", vehicleAlertData)
+			vehicleAlertData.BikeAngle = append(vehicleAlertData.BikeAngle, angel)
+
+			fmt.Println("Vehicle detect with fall", reflect.TypeOf(vehicleAlertData.BikeAngle), vehicleAlertData.BikeAngle)
 			upErr := s.UpdateVehicleFallAlert(vehicleAlertData)
 			if upErr != nil {
 				fmt.Println("Error occur for call update vehicle alert call", upErr)
@@ -158,7 +163,7 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 
 func (s *vehicleservice) UpdateVehicleAlert(vehicleAlert models.VehicleAlerts) error {
 
-	if (vehicleAlert == models.VehicleAlerts{}) {
+	if (reflect.DeepEqual(vehicleAlert, models.VehicleAlerts{})) {
 		vehicleAlert.AlertCount = 0
 	} else {
 		vehicleAlert.AlertCount = vehicleAlert.AlertCount + 1
@@ -171,7 +176,7 @@ func (s *vehicleservice) UpdateVehicleAlert(vehicleAlert models.VehicleAlerts) e
 
 func (s *vehicleservice) UpdateVehicleFallAlert(vehicleAlert models.VehicleFallAlerts) error {
 
-	if (vehicleAlert == models.VehicleFallAlerts{}) {
+	if (reflect.DeepEqual(vehicleAlert, models.VehicleFallAlerts{})) {
 		vehicleAlert.AlertCount = 0
 	} else {
 		vehicleAlert.AlertCount = vehicleAlert.AlertCount + 1
@@ -201,4 +206,9 @@ func (s *vehicleservice) CreateVehicleAlertHistory() error {
 	}
 
 	return err
+}
+
+func (s *vehicleservice) AddTestData(data models.TestModel) {
+	err := s.vehicleRepository.AddTestData(data)
+	fmt.Println(err)
 }

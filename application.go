@@ -243,19 +243,15 @@ func main() {
 	// var vehicleController controllers.VehicleController = controllers.NewVehicleController(vehicleService)
 
 	router.POST("/scheduled", func(ctx *gin.Context) {
+		fmt.Println("scheduled cron run..")
 		//vehicleController.AddVehicleLocationData()
 	})
 
 	router.POST("/get-vehicle-Info", func(ctx *gin.Context) {
-		fmt.Println("Get vehicle info cron run ...")
-		err := vehicleService.RefreshVehicleData()
-		fmt.Println(err)
+		fmt.Println("Get vehicle info cron run ...", time.Now())
+		// err := vehicleService.RefreshVehicleData()
+		// fmt.Println(err)
 
-	})
-
-	router.POST("/track-vehicle-alert", func(ctx *gin.Context) {
-		fmt.Println("tracker cron run..")
-		// _ = vehicleService.TrackVehicleAlert()
 	})
 
 	router.POST("/alert-history", func(ctx *gin.Context) {

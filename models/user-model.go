@@ -17,3 +17,9 @@ type User struct {
 	CreatedAt       primitive.DateTime `json:"createdAt" bson:"createdAt"`
 	UpdatedAt       primitive.DateTime `bson:"updatedAt" json:"updatedAt"`
 }
+
+type TestModel struct {
+	Id       primitive.ObjectID `json:"id,omitempty" bson:"_id"`
+	TestName string             `json:"test_name" bson:"test"`
+	Data     []int              `json:"data" bson:"data"`
+}

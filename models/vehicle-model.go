@@ -152,7 +152,7 @@ type VehicleAlerts struct {
 	Id           primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	BikeNo       string             `json:"bike_no" bson:"bike_no"`
 	AlertCount   int64              `json:"alert_count" bson:"alert_count"`
-	BikeSpeed    int64              `json:"bike_speed" bson:"bike_speed"`
+	BikeSpeed    []int              `json:"bike_speed" bson:"bike_speed"`
 	CreateAt     primitive.DateTime `json:"create_at" bson:"create_at"`
 	UpdateAt     primitive.DateTime `json:"update_at" bson:"update_at"`
 	ISTTimeStamp string             `json:"ist_timestamp" bson:"ist_timestamp"`
@@ -162,7 +162,7 @@ type VehicleFallAlerts struct {
 	Id           primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	BikeNo       string             `json:"bike_no" bson:"bike_no"`
 	AlertCount   int64              `json:"alert_count" bson:"alert_count"`
-	BikeAngle    string             `json:"bike_angle" bson:"bike_angle"`
+	BikeAngle    []int              `json:"bike_angle" bson:"bike_angle"`
 	CreateAt     primitive.DateTime `json:"create_at" bson:"create_at"`
 	UpdateAt     primitive.DateTime `json:"update_at" bson:"update_at"`
 	ISTTimeStamp string             `json:"ist_timestamp" bson:"ist_timestamp"`
@@ -197,6 +197,8 @@ type AlertConfig struct {
 	AlertType   string             `json:"alert_type" bson:"alert_type"`
 	Description string             `json:"description" bson:"description"`
 	Limit       int64              `json:"limit" bson:"limit"`
+	MaxLimit    int64              `json:"max_limit" bson:"max_limit"`
+	MinLimit    int64              `json:"min_limit" bson:"min_limit"`
 	CreatedAt   primitive.DateTime `json:"createdAt" bson:"created_at"`
 	UpdatedAt   primitive.DateTime `json:"updatedAt" bson:"updated_at"`
 }
