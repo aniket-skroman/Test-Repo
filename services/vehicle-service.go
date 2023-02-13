@@ -5,9 +5,11 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/aniket0951/testproject/models"
 	"github.com/aniket0951/testproject/repositories"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var wg sync.WaitGroup
@@ -25,8 +27,6 @@ type VehicleServices interface {
 	UpdateVehicleAlert(vehicleData models.VehicleAlerts) error
 	UpdateVehicleFallAlert(vehicleAlert models.VehicleFallAlerts) error
 	CreateVehicleAlertHistory() error
-
-	AddTestData(data models.TestModel)
 }
 
 type vehicleservice struct {
@@ -61,28 +61,36 @@ func (ser *vehicleservice) AddVehicleLocationData(vehicleLocation []models.Vehic
 }
 
 func (s *vehicleservice) RefreshVehicleData() error {
-	// vehicleData, err := s.vehicleRepository.RefreshVehicleData()
+	vehicleData, err := s.vehicleRepository.RefreshVehicleData()
 
-	// if err != nil {
-	// 	return err
-	// }
+	if err != nil {
+		return err
+	}
 
-	// fmt.Println("proxy data len => ", len(vehicleData))
+	fmt.Println("proxy data len => ", len(vehicleData))
+	vehicleDataForAlerts := []models.VehiclesData{}
 
-	// for i := range vehicleData {
-	// 	vehicleData[i].TimeStamp = primitive.NewDateTimeFromTime(time.Now())
-	// 	insErr := s.vehicleRepository.UpdateVehicleData(vehicleData[i])
+	for i := range vehicleData {
 
-	// 	if insErr != nil {
-	// 		fmt.Println("Insert error => ", insErr)
-	// 	}
-	// }
+		go func() {
+			if vehicleData[i].Status == "RUNNING" {
+				vehicleDataForAlerts = append(vehicleDataForAlerts, vehicleData[i])
+			}
+		}()
 
-	serr := s.TrackVehicleAlert([]models.VehiclesData{})
+		vehicleData[i].TimeStamp = primitive.NewDateTimeFromTime(time.Now())
+		insErr := s.vehicleRepository.UpdateVehicleData(vehicleData[i])
+
+		if insErr != nil {
+			fmt.Println("Insert error => ", insErr)
+		}
+
+	}
+
+	serr := s.TrackVehicleAlert(vehicleDataForAlerts)
 	if serr != nil {
 		fmt.Println("Error trackVehicleAlert from background thread =>", serr)
 	}
-
 	return nil
 }
 
@@ -133,7 +141,7 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 				vehicleAlertData.BikeNo = vehicleData[i].VehicleNo
 			}
 
-			fmt.Println("Vehicle detect with high speed", vehicleAlertData)
+			fmt.Println("Vehicle detect with high speed", vehicleAlertData, speed)
 			vehicleAlertData.BikeSpeed = append(vehicleAlertData.BikeSpeed, speed)
 			upErr := s.UpdateVehicleAlert(vehicleAlertData)
 			if upErr != nil {
@@ -141,7 +149,7 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 			}
 		}
 
-		if angel < minAngleLimit && angel > maxAngleLimit {
+		if angel < 0 || angel > maxAngleLimit {
 			vehicleAlertData, _ := s.vehicleRepository.GetVehicleFallAlertById(vehicleData[i].VehicleNo)
 
 			if reflect.DeepEqual(vehicleAlertData, models.VehicleFallAlerts{}) {
@@ -150,7 +158,7 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 
 			vehicleAlertData.BikeAngle = append(vehicleAlertData.BikeAngle, angel)
 
-			fmt.Println("Vehicle detect with fall", reflect.TypeOf(vehicleAlertData.BikeAngle), vehicleAlertData.BikeAngle)
+			fmt.Println("Vehicle detect with fall", reflect.TypeOf(vehicleAlertData.BikeAngle), angel)
 			upErr := s.UpdateVehicleFallAlert(vehicleAlertData)
 			if upErr != nil {
 				fmt.Println("Error occur for call update vehicle alert call", upErr)
@@ -188,14 +196,14 @@ func (s *vehicleservice) UpdateVehicleFallAlert(vehicleAlert models.VehicleFallA
 }
 
 func (s *vehicleservice) CreateVehicleAlertHistory() error {
-	res, err := s.vehicleRepository.GetAllVehicleAlerts()
+	res, err := s.vehicleRepository.GetOverSpeedAlerts()
 
 	if err != nil {
 		fmt.Println("Vehicle Alert History from Service", err)
 		return err
 	}
 
-	err = s.vehicleRepository.CreateVehicleAlertHistory(res)
+	s.vehicleRepository.CreateOverSpeedAlertHistory(res)
 
 	fallAlerts, fallErr := s.vehicleRepository.GetAllVehicleFallAlerts()
 
@@ -206,9 +214,4 @@ func (s *vehicleservice) CreateVehicleAlertHistory() error {
 	}
 
 	return err
-}
-
-func (s *vehicleservice) AddTestData(data models.TestModel) {
-	err := s.vehicleRepository.AddTestData(data)
-	fmt.Println(err)
 }

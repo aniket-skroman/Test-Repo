@@ -15,8 +15,6 @@ type VehicleController interface {
 	AddUpdateVehicleInformation()
 	AddVehicleLocationData()
 	TrackVehicleAlert()
-
-	AddTestData()
 }
 
 type vehiclecontroller struct {
@@ -95,12 +93,4 @@ func (c *vehiclecontroller) TrackVehicleAlert() {
 	// err := c.vehicleService.TrackVehicleAlert()
 
 	// fmt.Println("err =>", err)
-}
-
-func (c *vehiclecontroller) AddTestData() {
-	testData := &models.TestModel{
-		TestName: "test",
-		Data:     []int{1, 3},
-	}
-	c.vehicleService.AddTestData(*testData)
 }

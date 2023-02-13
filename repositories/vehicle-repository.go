@@ -37,20 +37,18 @@ type VehicleRepository interface {
 	AddVehicleLocationData(vehicleLocation models.VehicleLocationData)
 	GetVehicleAlertById(vehicleId string) (models.VehicleAlerts, error)
 	GetVehicleFallAlertById(vehicleId string) (models.VehicleFallAlerts, error)
-	GetAllVehicleAlerts() ([]models.VehicleAlerts, error)
+	GetOverSpeedAlerts() ([]models.VehicleAlerts, error)
 	GetAllVehicleFallAlerts() ([]models.VehicleFallAlerts, error)
 
 	TrackVehicleAlert() ([]models.VehiclesData, error)
 	UpdateVehicleAlert(vehicleData models.VehicleAlerts) error
 	UpdateVehicleFallAlert(vehicleData models.VehicleFallAlerts) error
-	CreateVehicleAlertHistory(vehicleAlerts []models.VehicleAlerts) error
+	CreateOverSpeedAlertHistory(vehicleAlerts []models.VehicleAlerts) error
 	CreateVehicleFallAlertHistory(vehicleAlerts []models.VehicleFallAlerts) error
 	DeleteTodayAlert(alertId primitive.ObjectID) error
 	DeleteTodayFallAlert(alertId primitive.ObjectID) error
 
 	GetAlertLimit(alertType string) (models.AlertConfig, error)
-
-	AddTestData(data models.TestModel) error
 }
 
 type vehiclerepository struct {
@@ -246,7 +244,7 @@ func (db *vehiclerepository) UpdateVehicleFallAlert(vehicleData models.VehicleFa
 	return nil
 }
 
-func (db *vehiclerepository) GetAllVehicleAlerts() ([]models.VehicleAlerts, error) {
+func (db *vehiclerepository) GetOverSpeedAlerts() ([]models.VehicleAlerts, error) {
 
 	filter := []bson.M{
 		{"$match": bson.M{
@@ -301,7 +299,7 @@ func (db *vehiclerepository) GetAllVehicleFallAlerts() ([]models.VehicleFallAler
 	return vehicleAlerts, nil
 }
 
-func (db *vehiclerepository) CreateVehicleAlertHistory(vehicleAlerts []models.VehicleAlerts) error {
+func (db *vehiclerepository) CreateOverSpeedAlertHistory(vehicleAlerts []models.VehicleAlerts) error {
 
 	for i := range vehicleAlerts {
 		if (reflect.DeepEqual(models.VehicleAlerts{}, vehicleAlerts[i])) {
@@ -315,13 +313,11 @@ func (db *vehiclerepository) CreateVehicleAlertHistory(vehicleAlerts []models.Ve
 			temp.HistoryTimestamp = primitive.NewDateTimeFromTime(time.Now())
 			temp.AlertType = "overspeed"
 
-			res, err := db.vehicleAlertHistoryConnection.InsertOne(context.TODO(), temp)
+			_, err := db.vehicleAlertHistoryConnection.InsertOne(context.TODO(), temp)
 
 			if err != nil {
 				return err
 			}
-
-			fmt.Println("Insert Alert Result History => ", res)
 
 			_ = db.DeleteTodayAlert(vehicleAlerts[i].Id)
 		}
@@ -345,13 +341,11 @@ func (db *vehiclerepository) CreateVehicleFallAlertHistory(vehicleAlerts []model
 			temp.HistoryTimestamp = primitive.NewDateTimeFromTime(time.Now())
 			temp.AlertType = "fall"
 
-			res, err := db.vehicleAlertHistoryConnection.InsertOne(context.TODO(), temp)
+			_, err := db.vehicleAlertHistoryConnection.InsertOne(context.TODO(), temp)
 
 			if err != nil {
 				return err
 			}
-
-			fmt.Println("Insert Alert Result History => ", res)
 
 			_ = db.DeleteTodayFallAlert(vehicleAlerts[i].Id)
 		}
@@ -367,9 +361,7 @@ func (db *vehiclerepository) DeleteTodayAlert(alertId primitive.ObjectID) error 
 		bson.E{Key: "_id", Value: alertId},
 	}
 
-	res, err := db.vehicleAlertConnection.DeleteOne(context.TODO(), filter)
-
-	fmt.Println("Delete alert history => ", res)
+	_, err := db.vehicleAlertConnection.DeleteOne(context.TODO(), filter)
 
 	return err
 }
@@ -379,9 +371,7 @@ func (db *vehiclerepository) DeleteTodayFallAlert(alertId primitive.ObjectID) er
 		bson.E{Key: "_id", Value: alertId},
 	}
 
-	res, err := db.vehicleFallAlertsConnection.DeleteOne(context.TODO(), filter)
-
-	fmt.Println("Delete alert history => ", res)
+	_, err := db.vehicleFallAlertsConnection.DeleteOne(context.TODO(), filter)
 
 	return err
 }
@@ -399,28 +389,4 @@ func (db *vehiclerepository) GetAlertLimit(alertType string) (models.AlertConfig
 	}
 
 	return alertConfig, nil
-}
-
-func (db *vehiclerepository) AddTestData(data models.TestModel) error {
-	filter := bson.D{
-		bson.E{Key: "test", Value: "test"},
-	}
-
-	update := bson.M{
-
-		"$push": bson.M{
-			"data": data.Data[1],
-		},
-	}
-
-	opt := options.Update().SetUpsert(true)
-
-	upRes, err := db.testConnection.UpdateOne(context.TODO(), filter, update, opt)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(upRes.MatchedCount, upRes.ModifiedCount)
-	return nil
 }

@@ -172,7 +172,7 @@ type VehicleAlertHistory struct {
 	Id               primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	BikeNo           string             `json:"bike_no" bson:"bike_no"`
 	AlertCount       int64              `json:"alert_count" bson:"alert_count"`
-	BikeSpeed        int64              `json:"bike_speed" bson:"bike_speed"`
+	BikeSpeed        []int              `json:"bike_speed" bson:"bike_speed"`
 	AlertType        string             `json:"alert_type" bson:"alert_type"`
 	CreateAt         primitive.DateTime `json:"create_at" bson:"create_at"`
 	UpdateAt         primitive.DateTime `json:"update_at" bson:"update_at"`
@@ -184,7 +184,7 @@ type VehicleFallAlertHistory struct {
 	Id               primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	BikeNo           string             `json:"bike_no" bson:"bike_no"`
 	AlertCount       int64              `json:"alert_count" bson:"alert_count"`
-	BikeAngle        string             `json:"bike_angle" bson:"bike_angle"`
+	BikeAngle        []int              `json:"bike_angle" bson:"bike_angle"`
 	AlertType        string             `json:"alert_type" bson:"alert_type"`
 	CreateAt         primitive.DateTime `json:"create_at" bson:"create_at"`
 	UpdateAt         primitive.DateTime `json:"update_at" bson:"update_at"`

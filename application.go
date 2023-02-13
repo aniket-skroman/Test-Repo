@@ -11,9 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/aniket0951/testproject/repositories"
-	"github.com/aniket0951/testproject/services"
-
 	dbconfig "github.com/aniket0951/testproject/db-config"
 	"github.com/aniket0951/testproject/models"
 	"github.com/aniket0951/testproject/proxyapis"
@@ -238,26 +235,20 @@ const (
 func main() {
 
 	router := gin.Default()
-	var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
-	var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
-	// var vehicleController controllers.VehicleController = controllers.NewVehicleController(vehicleService)
+	// var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
+	// var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
 
-	router.POST("/scheduled", func(ctx *gin.Context) {
-		fmt.Println("scheduled cron run..")
-		//vehicleController.AddVehicleLocationData()
-	})
-
-	router.POST("/get-vehicle-Info", func(ctx *gin.Context) {
-		fmt.Println("Get vehicle info cron run ...", time.Now())
+	router.POST("/refresh-data", func(ctx *gin.Context) {
+		fmt.Println("Get vehicle info cron run ...", time.Now().Local())
 		// err := vehicleService.RefreshVehicleData()
 		// fmt.Println(err)
 
 	})
 
 	router.POST("/alert-history", func(ctx *gin.Context) {
-		fmt.Println("Alert history run..")
-		err := vehicleService.CreateVehicleAlertHistory()
-		fmt.Println(err)
+		fmt.Println("Alert history run..", time.Now().Local())
+		// err := vehicleService.CreateVehicleAlertHistory()
+		// fmt.Println(err)
 	})
 
 	err := router.Run(":5000")
