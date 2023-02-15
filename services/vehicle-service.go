@@ -27,6 +27,8 @@ type VehicleServices interface {
 	UpdateVehicleAlert(vehicleData models.VehicleAlerts) error
 	UpdateVehicleFallAlert(vehicleAlert models.VehicleFallAlerts) error
 	CreateVehicleAlertHistory() error
+
+	AddTestData() error
 }
 
 type vehicleservice struct {
@@ -214,4 +216,8 @@ func (s *vehicleservice) CreateVehicleAlertHistory() error {
 	}
 
 	return err
+}
+
+func (s *vehicleservice) AddTestData() error {
+	return s.vehicleRepository.AddTestData()
 }

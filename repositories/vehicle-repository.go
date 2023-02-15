@@ -49,6 +49,8 @@ type VehicleRepository interface {
 	DeleteTodayFallAlert(alertId primitive.ObjectID) error
 
 	GetAlertLimit(alertType string) (models.AlertConfig, error)
+
+	AddTestData() error
 }
 
 type vehiclerepository struct {
@@ -389,4 +391,32 @@ func (db *vehiclerepository) GetAlertLimit(alertType string) (models.AlertConfig
 	}
 
 	return alertConfig, nil
+}
+
+func (db *vehiclerepository) AddTestData() error {
+	filter := bson.D{
+		bson.E{Key: "test", Value: "test2"},
+	}
+
+	update := bson.D{
+		bson.E{Key: "$push", Value: bson.D{
+			bson.E{Key: "data", Value: 13},
+		}},
+		bson.E{Key: "$inc", Value: bson.D{
+			bson.E{Key: "count", Value: 2},
+		}},
+	}
+
+	opts := options.Update().SetUpsert(true)
+
+	// bson.M{"$push": bson.M{"data": 12}}
+
+	res, err := db.testConnection.UpdateOne(context.TODO(), filter, update, opts)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("result of test data => ", res)
+
+	return nil
 }

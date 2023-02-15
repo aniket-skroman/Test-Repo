@@ -14,6 +14,8 @@ import (
 	dbconfig "github.com/aniket0951/testproject/db-config"
 	"github.com/aniket0951/testproject/models"
 	"github.com/aniket0951/testproject/proxyapis"
+	"github.com/aniket0951/testproject/repositories"
+	"github.com/aniket0951/testproject/services"
 	"github.com/gin-gonic/gin"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -235,8 +237,8 @@ const (
 func main() {
 
 	router := gin.Default()
-	// var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
-	// var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
+	var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
+	var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
 
 	router.POST("/refresh-data", func(ctx *gin.Context) {
 		fmt.Println("Get vehicle info cron run ...", time.Now().Local())
@@ -249,6 +251,11 @@ func main() {
 		fmt.Println("Alert history run..", time.Now().Local())
 		// err := vehicleService.CreateVehicleAlertHistory()
 		// fmt.Println(err)
+	})
+
+	router.POST("/add-test-data", func(ctx *gin.Context) {
+		err := vehicleService.AddTestData()
+		fmt.Println(err)
 	})
 
 	err := router.Run(":5000")
