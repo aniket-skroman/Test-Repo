@@ -245,6 +245,11 @@ func RunCronJob() {
 		fmt.Println(err)
 	})
 
+	scheduler.Every(24).Hour().Do(func() {
+		err := vehicleService.CreateVehicleAlertHistory()
+		fmt.Println(err)
+	})
+
 	scheduler.StartBlocking()
 }
 
