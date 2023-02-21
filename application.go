@@ -16,7 +16,7 @@ import (
 	"github.com/aniket0951/testproject/proxyapis"
 	"github.com/aniket0951/testproject/repositories"
 	"github.com/aniket0951/testproject/services"
-	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -234,33 +234,49 @@ const (
 	ContentTypeText   = "text/plain; charset=utf-8"
 )
 
-func main() {
+var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
+var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
 
-	router := gin.Default()
-	var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
-	var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
+func RunCronJob() {
+	scheduler := gocron.NewScheduler(time.UTC)
 
-	router.POST("/refresh-data", func(ctx *gin.Context) {
-		// fmt.Println("Get vehicle info cron run ...", time.Now().Local())
+	scheduler.Every(1).Hour().Do(func() {
 		err := vehicleService.RefreshVehicleData()
 		fmt.Println(err)
-
 	})
 
-	router.POST("/alert-history", func(ctx *gin.Context) {
-		fmt.Println("Alert history run..", time.Now().Local())
-		// err := vehicleService.CreateVehicleAlertHistory()
-		// fmt.Println(err)
-	})
+	scheduler.StartBlocking()
+}
 
-	router.POST("/add-test-data", func(ctx *gin.Context) {
-		err := vehicleService.AddTestData()
-		fmt.Println(err)
-	})
+func main() {
 
-	err := router.Run(":5000")
-	if err != nil {
-		fmt.Println(err)
-	}
+	RunCronJob()
+
+	// router := gin.Default()
+	// var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
+	// var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
+
+	// router.POST("/refresh-data", func(ctx *gin.Context) {
+	// 	// fmt.Println("Get vehicle info cron run ...", time.Now().Local())
+	// 	err := vehicleService.RefreshVehicleData()
+	// 	fmt.Println(err)
+
+	// })
+
+	// router.POST("/alert-history", func(ctx *gin.Context) {
+	// 	fmt.Println("Alert history run..", time.Now().Local())
+	// 	// err := vehicleService.CreateVehicleAlertHistory()
+	// 	// fmt.Println(err)
+	// })
+
+	// router.POST("/add-test-data", func(ctx *gin.Context) {
+	// 	err := vehicleService.AddTestData()
+	// 	fmt.Println(err)
+	// })
+
+	// err := router.Run(":5000")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 
 }

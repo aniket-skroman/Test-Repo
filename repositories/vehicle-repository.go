@@ -481,4 +481,6 @@ func (db *vehiclerepository) CreateDistanceTravelHistory(vehicleData []models.Ve
 			return err
 		}
 	}
+
+	return nil
 }
