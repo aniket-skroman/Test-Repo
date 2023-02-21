@@ -31,6 +31,7 @@ var vehicleFallAlertCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB
 var testCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "test_collection")
 
 type VehicleRepository interface {
+	GetAllVehicles() ([]models.VehiclesData, error)
 	AddUpdateVehicleInformation(vehicleInfo models.VehiclesData)
 	RefreshVehicleData() ([]models.VehiclesData, error)
 	UpdateVehicleData(vehicle models.VehiclesData) error
@@ -45,6 +46,7 @@ type VehicleRepository interface {
 	UpdateVehicleFallAlert(vehicleData models.VehicleFallAlerts) error
 	CreateOverSpeedAlertHistory(vehicleAlerts []models.VehicleAlerts) error
 	CreateVehicleFallAlertHistory(vehicleAlerts []models.VehicleFallAlerts) error
+	CreateDistanceTravelHistory(vehicleData []models.VehiclesData) error
 	DeleteTodayAlert(alertId primitive.ObjectID) error
 	DeleteTodayFallAlert(alertId primitive.ObjectID) error
 
@@ -76,12 +78,10 @@ func NewVehicleRepository() VehicleRepository {
 }
 
 func (db *vehiclerepository) AddUpdateVehicleInformation(vehicleInfo models.VehiclesData) {
-	fmt.Println("repo get start", vehicleInfo)
-	opt := options.FindOneAndReplace().SetUpsert(true)
-
 	filter := bson.D{
 		bson.E{Key: "vehicleno", Value: vehicleInfo.VehicleNo},
 	}
+	opt := options.FindOneAndReplace().SetUpsert(true)
 
 	res := db.vehicleCollection.FindOneAndReplace(context.TODO(), filter, vehicleInfo, opt)
 	fmt.Println("resul for update ", res.Err())
@@ -127,6 +127,27 @@ func (db *vehiclerepository) UpdateVehicleData(vehicle models.VehiclesData) erro
 
 	filter := bson.D{
 		bson.E{Key: "vehicleno", Value: vehicle.VehicleNo},
+	}
+
+	result := models.VehiclesData{}
+	err := db.vehicleCollection.FindOne(context.TODO(), filter).Decode(&result)
+
+	if err != nil {
+		return err
+	}
+
+	if (result != models.VehiclesData{}) {
+		prevLatitude := helper.ConvertStrToFloat(result.Latitude)
+		prevLongitude := helper.ConvertStrToFloat(result.Longitude)
+
+		currentLatitude := helper.ConvertStrToFloat(vehicle.Latitude)
+		currentLongitude := helper.ConvertStrToFloat(vehicle.Longitude)
+
+		pointA := helper.Coordinates{prevLatitude, prevLongitude}
+		pointB := helper.Coordinates{currentLatitude, currentLongitude}
+		distance := pointA.Distance(pointB)
+
+		vehicle.DistanceTraveled = result.DistanceTraveled + distance
 	}
 
 	vehicle.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
@@ -398,12 +419,18 @@ func (db *vehiclerepository) AddTestData() error {
 		bson.E{Key: "test", Value: "test2"},
 	}
 
+	t := time.Now()
+	isoDate := t.Format(time.RFC3339)
+
 	update := bson.D{
 		bson.E{Key: "$push", Value: bson.D{
 			bson.E{Key: "data", Value: 13},
 		}},
 		bson.E{Key: "$inc", Value: bson.D{
 			bson.E{Key: "count", Value: 2},
+		}},
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "isoTime", Value: isoDate},
 		}},
 	}
 
@@ -419,4 +446,39 @@ func (db *vehiclerepository) AddTestData() error {
 	fmt.Println("result of test data => ", res)
 
 	return nil
+}
+
+func (db *vehiclerepository) GetAllVehicles() ([]models.VehiclesData, error) {
+	cursor, curErr := db.vehicleCollection.Find(context.TODO(), bson.M{})
+
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	vehiclesData := []models.VehiclesData{}
+
+	if err := cursor.All(context.TODO(), &vehiclesData); err != nil {
+		return nil, err
+	}
+
+	return vehiclesData, nil
+}
+
+func (db *vehiclerepository) CreateDistanceTravelHistory(vehicleData []models.VehiclesData) error {
+	for i := range vehicleData {
+		temp := models.VehicleFallAlertHistory{}
+
+		temp.Id = primitive.NewObjectID()
+		temp.HistoryTimestamp = primitive.NewDateTimeFromTime(time.Now())
+		temp.AlertType = "travel_distance"
+		temp.BikeNo = vehicleData[i].VehicleNo
+		temp.CreateAt = primitive.NewDateTimeFromTime(time.Now())
+		temp.DistanceTraveled = vehicleData[i].DistanceTraveled
+
+		_, err := db.vehicleAlertHistoryConnection.InsertOne(context.TODO(), temp)
+
+		if err != nil {
+			return err
+		}
+	}
 }

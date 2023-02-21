@@ -47,12 +47,12 @@ type VehiclesData struct {
 	DriverFirstName   string             `json:"Driver_First_Name,omitempty" bson:"driverfirstname"`
 	Angle             string             `json:"Angle,omitempty" bson:"angle"`
 	SOS               string             `json:"SOS,omitempty" bson:"sos"`
-	Fuel              []interface{}      `json:"Fuel,omitempty" bson:"fuel"`
 	BatteryPercentage string             `json:"battery_percentage,omitempty" bson:"batterypercentage"`
 	ExternalVolt      string             `json:"ExternalVolt,omitempty" bson:"externalvolt"`
 	DriverLastName    string             `json:"Driver_Last_Name,omitempty" bson:"driverlastname"`
 	Power             string             `json:"Power,omitempty" bson:"power"`
 	Location          string             `json:"Location,omitempty" bson:"location"`
+	DistanceTraveled  float64            `json:"DistanceTraveled" bson:"distance_traveled"`
 	TimeStamp         primitive.DateTime `json:"timeStamp" bson:"timeStamp"`
 	CreatedAt         primitive.DateTime `bson:"createdAt" json:"createdAt"`
 	UpdatedAt         primitive.DateTime `bson:"updatedAt" json:"updatedAt"`
@@ -186,6 +186,7 @@ type VehicleFallAlertHistory struct {
 	AlertCount       int64              `json:"alert_count" bson:"alert_count"`
 	BikeAngle        []int              `json:"bike_angle" bson:"bike_angle"`
 	AlertType        string             `json:"alert_type" bson:"alert_type"`
+	DistanceTraveled float64            `json:"distance_travel" bson:"distance_travel"`
 	CreateAt         primitive.DateTime `json:"create_at" bson:"create_at"`
 	UpdateAt         primitive.DateTime `json:"update_at" bson:"update_at"`
 	ISTTimeStamp     string             `json:"ist_timestamp" bson:"ist_timestamp"`

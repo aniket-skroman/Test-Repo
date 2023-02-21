@@ -241,9 +241,9 @@ func main() {
 	var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
 
 	router.POST("/refresh-data", func(ctx *gin.Context) {
-		fmt.Println("Get vehicle info cron run ...", time.Now().Local())
-		// err := vehicleService.RefreshVehicleData()
-		// fmt.Println(err)
+		// fmt.Println("Get vehicle info cron run ...", time.Now().Local())
+		err := vehicleService.RefreshVehicleData()
+		fmt.Println(err)
 
 	})
 
