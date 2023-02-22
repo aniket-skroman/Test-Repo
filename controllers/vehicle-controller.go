@@ -51,8 +51,8 @@ func (c *vehiclecontroller) AddUpdateVehicleInformation() {
 				fmt.Println("smp error ==> ", smpErr.Error())
 			}
 			singleVehicleInfo.TimeStamp = primitive.NewDateTimeFromTime(time.Now())
-			singleVehicleInfo.CreatedAt = time.Now()
-			singleVehicleInfo.UpdatedAt = time.Now()
+			singleVehicleInfo.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+			singleVehicleInfo.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
 			vehicleInfo = append(vehicleInfo, singleVehicleInfo)
 		}
@@ -90,7 +90,7 @@ func (c *vehiclecontroller) AddVehicleLocationData() {
 }
 
 func (c *vehiclecontroller) TrackVehicleAlert() {
-	err := c.vehicleService.TrackVehicleAlert()
+	// err := c.vehicleService.TrackVehicleAlert()
 
-	fmt.Println("err =>", err)
+	// fmt.Println("err =>", err)
 }

@@ -1,14 +1,5 @@
 version: 1
 cron:
- - name: "scheduled"
-   url: "/scheduled"
-   schedule: "* * * * *"
- - name: "get-vehicle-Info"
-   url: "/get-vehicle-Info"
-   schedule: "0 * * * *"
- - name: "alert-history"
-   url: "/alert-history"
-   schedule: "0 0 * * *" 
- - name: "track-vehicle-alert"
-   url: "/track-vehicle-alert"
-   schedule: "5 1 * * *"      
+  - name: "refreshvehicledata"
+    url: "/refresh-data"
+    schedule: "0 */1 * * *"
