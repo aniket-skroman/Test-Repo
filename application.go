@@ -245,7 +245,17 @@ func RunCronJob() {
 		if err != nil {
 			log.Println(err)
 		} else {
-			log.Println("Vehicle Alert History cron run...", time.Now())
+			log.Println("Vehicle Alert History cron run successfully...", time.Now())
+		}
+	})
+
+	scheduler.Every(24).Hour().Do(func() {
+		err := vehicleService.CreateDistanceTravelHistory()
+
+		if err != nil {
+			log.Println("err from create distance travel history => ", err)
+		} else {
+			log.Println("Create Distance Travel History  run successfully....", time.Now())
 		}
 	})
 

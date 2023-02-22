@@ -27,6 +27,7 @@ type VehicleServices interface {
 	UpdateVehicleAlert(vehicleData models.VehicleAlerts) error
 	UpdateVehicleFallAlert(vehicleAlert models.VehicleFallAlerts) error
 	CreateVehicleAlertHistory() error
+	CreateDistanceTravelHistory() error
 
 	AddTestData() error
 }
@@ -216,6 +217,16 @@ func (s *vehicleservice) CreateVehicleAlertHistory() error {
 	}
 
 	return err
+}
+
+func (s *vehicleservice) CreateDistanceTravelHistory() error {
+	vehicleData, err := s.vehicleRepository.GetAllVehicles()
+
+	if err != nil {
+		return err
+	}
+
+	return s.vehicleRepository.CreateDistanceTravelHistory(vehicleData)
 }
 
 func (s *vehicleservice) AddTestData() error {
