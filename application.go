@@ -110,7 +110,7 @@ var (
 
 func LoggerFile(msg string) *os.File {
 	// set location of log file
-	LOG_FILE := "./logger/info.log"
+	LOG_FILE := "info.log"
 	// open log file
 	f, err := os.OpenFile(LOG_FILE, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
