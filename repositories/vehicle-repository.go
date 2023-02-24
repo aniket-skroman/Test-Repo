@@ -32,6 +32,7 @@ var testCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "test_co
 var vehicleDistanceTravelCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "vehicle_distance_travel")
 var batteryTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_temp")
 var batteryMainCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_main")
+var batteryReportingCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_reporting")
 
 type VehicleRepository interface {
 	GetAllVehicles() ([]models.VehiclesData, error)
@@ -59,6 +60,7 @@ type VehicleRepository interface {
 	BatteryTempToMain() error
 	AddBatteryToMain(batteryData []models.BatteryHardwareMain) error
 	DeleteBatteryTempData(batteryData []string) error
+	UpdateBMSReporting(batteryData []string) error
 
 	AddTestData() error
 }
@@ -74,6 +76,7 @@ type vehiclerepository struct {
 	vehicleDistanceTravelConnection *mongo.Collection
 	batteryTempConnection           *mongo.Collection
 	batteryMainConnection           *mongo.Collection
+	batteryReportingConnection      *mongo.Collection
 }
 
 func NewVehicleRepository() VehicleRepository {
@@ -88,6 +91,7 @@ func NewVehicleRepository() VehicleRepository {
 		vehicleDistanceTravelConnection: vehicleDistanceTravelCollection,
 		batteryTempConnection:           batteryTempCollection,
 		batteryMainConnection:           batteryMainCollection,
+		batteryReportingConnection:      batteryReportingCollection,
 	}
 }
 
@@ -552,9 +556,9 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
-	fmt.Println("len of data to insert", len(batteryData), len(dataToDelete))
 	db.DeleteBatteryTempData(dataToDelete)
 	err := db.AddBatteryToMain(batteryData)
+	db.UpdateBMSReporting(dataToDelete)
 
 	fmt.Println(err)
 
@@ -583,11 +587,6 @@ func (db *vehiclerepository) DeleteBatteryTempData(batteryData []string) error {
 }
 
 func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwareMain) error {
-	// filter := bson.D{
-	// 	bson.E{Key: "bms_id", Value: bson.D{
-	// 		bson.E{Key: "$in", Value: bmsIds},
-	// 	}},
-	// }
 
 	var operations []mongo.WriteModel
 
@@ -663,6 +662,49 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 	defer cancel()
 
 	res, err := db.batteryMainConnection.BulkWrite(ctx, operations)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(res.InsertedCount)
+
+	return nil
+}
+
+func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
+	var operations []mongo.WriteModel
+
+	for i := range batteryData {
+		option := mongo.NewUpdateOneModel()
+		option.SetFilter(bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i]},
+		})
+
+		LocalTimeStamp := helper.ConvertUTCToIndia()
+		localDate := LocalTimeStamp[0]
+		localTime := LocalTimeStamp[1]
+
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+				bson.E{Key: "local_timestamp", Value: localDate + " " + localTime},
+			}},
+		}
+
+		option.SetUpdate(&update)
+		option.SetUpsert(true)
+		operations = append(operations, option)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	res, err := db.batteryReportingConnection.BulkWrite(ctx, operations)
 
 	if err != nil {
 		return err
