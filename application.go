@@ -230,34 +230,43 @@ func RunCronJob() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	f := LoggerFile("")
 	log.SetOutput(f)
-	scheduler.Every(1).Hour().Do(func() {
 
-		err := vehicleService.RefreshVehicleData()
+	scheduler.Every(1).Minute().Do(func() {
+		err := vehicleService.BatteryTempToMain()
 		if err != nil {
 			log.Println(err)
 		} else {
-			log.Println("Refresh vehicle data cron run...", time.Now())
+			log.Println("Battery temp to main run ....")
 		}
 	})
+	// scheduler.Every(1).Hour().Do(func() {
 
-	scheduler.Every(24).Hour().Do(func() {
-		err := vehicleService.CreateVehicleAlertHistory()
-		if err != nil {
-			log.Println(err)
-		} else {
-			log.Println("Vehicle Alert History cron run successfully...", time.Now())
-		}
-	})
+	// 	err := vehicleService.RefreshVehicleData()
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	} else {
+	// 		log.Println("Refresh vehicle data cron run...", time.Now())
+	// 	}
+	// })
 
-	scheduler.Every(24).Hour().Do(func() {
-		err := vehicleService.CreateDistanceTravelHistory()
+	// scheduler.Every(24).Hour().Do(func() {
+	// 	err := vehicleService.CreateVehicleAlertHistory()
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	} else {
+	// 		log.Println("Vehicle Alert History cron run successfully...", time.Now())
+	// 	}
+	// })
 
-		if err != nil {
-			log.Println("err from create distance travel history => ", err)
-		} else {
-			log.Println("Create Distance Travel History  run successfully....", time.Now())
-		}
-	})
+	// scheduler.Every(24).Hour().Do(func() {
+	// 	err := vehicleService.CreateDistanceTravelHistory()
+
+	// 	if err != nil {
+	// 		log.Println("err from create distance travel history => ", err)
+	// 	} else {
+	// 		log.Println("Create Distance Travel History  run successfully....", time.Now())
+	// 	}
+	// })
 
 	scheduler.StartBlocking()
 }
@@ -285,6 +294,11 @@ func main() {
 
 	// router.POST("/add-test-data", func(ctx *gin.Context) {
 	// 	err := vehicleService.AddTestData()
+	// 	fmt.Println(err)
+	// })
+
+	// router.GET("/temp-to-main", func(ctx *gin.Context) {
+	// 	err := vehicleService.BatteryTempToMain()
 	// 	fmt.Println(err)
 	// })
 

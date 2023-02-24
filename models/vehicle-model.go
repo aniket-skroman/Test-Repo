@@ -51,8 +51,8 @@ type VehiclesData struct {
 	ExternalVolt      string             `json:"ExternalVolt,omitempty" bson:"externalvolt"`
 	DriverLastName    string             `json:"Driver_Last_Name,omitempty" bson:"driverlastname"`
 	Power             string             `json:"Power,omitempty" bson:"power"`
-	Location          string             `json:"Location,omitempty" bson:"location"`
 	DistanceTraveled  float64            `json:"DistanceTraveled" bson:"distance_traveled"`
+	Location          string             `json:"Location,omitempty" bson:"location"`
 	TimeStamp         primitive.DateTime `json:"timeStamp" bson:"timeStamp"`
 	CreatedAt         primitive.DateTime `bson:"createdAt" json:"createdAt"`
 	UpdatedAt         primitive.DateTime `bson:"updatedAt" json:"updatedAt"`
@@ -202,4 +202,13 @@ type AlertConfig struct {
 	MinLimit    int64              `json:"min_limit" bson:"min_limit"`
 	CreatedAt   primitive.DateTime `json:"createdAt" bson:"created_at"`
 	UpdatedAt   primitive.DateTime `json:"updatedAt" bson:"updated_at"`
+}
+
+type VehicleDistanceTravel struct {
+	Id             primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	DistanceTravel float64            `json:"distance_travel" bson:"distance_travel"`
+	TagType        string             `json:"tag_type" bson:"tag_type"`
+	CreatedAt      primitive.DateTime `json:"created_at" bson:"created_at"`
+	UpdatedAt      primitive.DateTime `json:"updated_at" bson:"updated_at"`
+	LocalTimestamp string             `json:"local_timestamp" bson:"local_timestamp"`
 }

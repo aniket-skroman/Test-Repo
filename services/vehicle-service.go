@@ -29,6 +29,8 @@ type VehicleServices interface {
 	CreateVehicleAlertHistory() error
 	CreateDistanceTravelHistory() error
 
+	BatteryTempToMain() error
+
 	AddTestData() error
 }
 
@@ -226,7 +228,19 @@ func (s *vehicleservice) CreateDistanceTravelHistory() error {
 		return err
 	}
 
-	return s.vehicleRepository.CreateDistanceTravelHistory(vehicleData)
+	requiredData := []models.VehiclesData{}
+
+	for i := range vehicleData {
+		if vehicleData[i].DistanceTraveled >= 1 {
+			requiredData = append(requiredData, vehicleData[i])
+		}
+	}
+
+	return s.vehicleRepository.CreateDistanceTravelHistory(requiredData)
+}
+
+func (s *vehicleservice) BatteryTempToMain() error {
+	return s.vehicleRepository.BatteryTempToMain()
 }
 
 func (s *vehicleservice) AddTestData() error {
