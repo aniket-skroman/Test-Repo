@@ -558,15 +558,15 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
-	go func(data []models.BatteryHardwareMain) {
-		for i := range data {
-			temp := models.BatteryHardwareMain{}
-			_ = smapping.FillStruct(&temp, smapping.MapFields(data[i]))
-			temp.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
-			temp.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
-			db.CreateMBMSRawAndSOCData(temp)
-		}
-	}(batteryData)
+	// go func(data []models.BatteryHardwareMain) {
+	// 	for i := range data {
+	// 		temp := models.BatteryHardwareMain{}
+	// 		_ = smapping.FillStruct(&temp, smapping.MapFields(data[i]))
+	// 		temp.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	// 		temp.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+	// 		db.CreateMBMSRawAndSOCData(temp)
+	// 	}
+	// }(batteryData)
 
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
