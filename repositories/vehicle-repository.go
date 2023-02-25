@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"reflect"
 	"time"
@@ -557,6 +558,16 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
+	go func(data []models.BatteryHardwareMain) {
+		for i := range data {
+			temp := models.BatteryHardwareMain{}
+			_ = smapping.FillStruct(&temp, smapping.MapFields(data[i]))
+			temp.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+			temp.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+			db.CreateMBMSRawAndSOCData(temp)
+		}
+	}(batteryData)
+
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
 	db.UpdateBMSReporting(dataToDelete)
@@ -712,4 +723,52 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 	fmt.Println(res.InsertedCount)
 
 	return nil
+}
+
+var Mclient *mongo.Client
+
+func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData models.BatteryHardwareMain) error {
+	ConnectToMDB()
+	var remote = "telematics"
+	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
+	socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
+
+	currentTime := time.Now()
+	isoDateTime := currentTime.Format(time.RFC3339)
+	hardWareData.ISOTimeStamp = isoDateTime
+
+	_, err := rawDataCollection.InsertOne(context.TODO(), &hardWareData)
+
+	if err != nil {
+		return err
+	}
+
+	filter := bson.D{
+		bson.E{Key: "bms_id", Value: hardWareData.BmsID},
+	}
+
+	res := socDataCollection.FindOneAndReplace(context.TODO(), filter, hardWareData)
+
+	if res.Err() != nil {
+		fmt.Println(res.Err())
+	}
+
+	return nil
+}
+
+func ConnectToMDB() {
+	if Mclient == nil {
+		var err error
+		clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
+		Mclient, err = mongo.Connect(context.Background(), clientOptions)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// check the connection
+		err = Mclient.Ping(context.Background(), nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
