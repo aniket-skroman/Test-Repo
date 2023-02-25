@@ -532,7 +532,8 @@ func (db *vehiclerepository) CreateDistanceTravelHistory(vehicleData []models.Ve
 
 func (db *vehiclerepository) BatteryTempToMain() error {
 	filter := bson.D{
-		bson.E{Key: "is_json_map", Value: true},
+		bson.E{Key: "is_first_fill", Value: true},
+		bson.E{Key: "is_second_fill", Value: true},
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -557,10 +558,8 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 	}
 
 	db.DeleteBatteryTempData(dataToDelete)
-	err := db.AddBatteryToMain(batteryData)
+	db.AddBatteryToMain(batteryData)
 	db.UpdateBMSReporting(dataToDelete)
-
-	fmt.Println(err)
 
 	return nil
 }
