@@ -767,16 +767,18 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	// defer cancel()
 
-	go func(data []mongo.WriteModel) {
-		// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		// defer cancel()
-		_, _ = socDataCollection.BulkWrite(context.TODO(), data)
+	// go func(data []mongo.WriteModel) {
+	// 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 	// defer cancel()
+	// 	_, _ = socDataCollection.BulkWrite(context.TODO(), data)
 
-	}(operations2)
+	// }(operations2)
+	res1, err1 := socDataCollection.BulkWrite(context.TODO(), operations2)
 
-	_, err := rawDataCollection.BulkWrite(context.TODO(), operations)
-
-	return err
+	res2, err2 := rawDataCollection.BulkWrite(context.TODO(), operations)
+	fmt.Println(res1, res2)
+	fmt.Println(err1, err2)
+	return nil
 }
 
 func ConnectToMDB() *mongo.Client {
