@@ -685,7 +685,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
-	socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
+	// socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
 
 	currentTime := time.Now()
 	isoDateTime := currentTime.Format(time.RFC3339)
@@ -759,6 +759,16 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		option2 := option
 		option2.SetUpsert(false)
 		operations2 = append(operations2, option2)
+
+		// filter := bson.D{
+		// 	bson.E{Key: "bms_id", Value: hardWareData[i]},
+		// }
+
+		// opts := options.Update().SetUpsert(true)
+
+		res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+		fmt.Println(res.InsertedID, err)
+
 	}
 
 	bulkOption := options.BulkWriteOptions{}
@@ -773,11 +783,11 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	// 	_, _ = socDataCollection.BulkWrite(context.TODO(), data)
 
 	// }(operations2)
-	res1, err1 := socDataCollection.BulkWrite(context.TODO(), operations2)
+	// res1, err1 := socDataCollection.BulkWrite(context.TODO(), operations2)
 
-	res2, err2 := rawDataCollection.BulkWrite(context.TODO(), operations)
-	fmt.Println(res1, res2)
-	fmt.Println(err1, err2)
+	// res2, err2 := rawDataCollection.BulkWrite(context.TODO(), operations)
+	// fmt.Println(res1, res2)
+	// fmt.Println(err1, err2)
 	return nil
 }
 
