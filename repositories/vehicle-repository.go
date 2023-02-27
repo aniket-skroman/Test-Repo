@@ -684,7 +684,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
-	// socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
+	socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
 
 	currentTime := time.Now()
 	isoDateTime := currentTime.Format(time.RFC3339)
@@ -700,7 +700,13 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
 		rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
-		// fmt.Println(res.InsertedID)
+		opts := options.Update().SetUpsert(true)
+		filter := bson.D{
+			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
+		}
+
+		socDataCollection.UpdateOne(context.TODO(), filter, &hardWareData[i], opts)
+
 	}
 
 	// var operations []mongo.WriteModel
