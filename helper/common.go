@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -30,11 +29,8 @@ func MakeDateTimeFormat() time.Time {
 
 	layout := "2006-01-02T15:04:05.000"
 	str := currentStr
-	t, err := time.Parse(layout, str)
+	t, _ := time.Parse(layout, str)
 
-	if err != nil {
-		fmt.Println(err)
-	}
 	return t
 }
 

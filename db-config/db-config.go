@@ -2,7 +2,6 @@ package dbconfig
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,7 +36,7 @@ func ResolveClientDB() *mongo.Client {
 	}
 
 	// TODO optional you can log your connected MongoDB client
-	fmt.Println("Connection established...")
+	// fmt.Println("Connection established...")
 	return client
 }
 
@@ -52,7 +51,7 @@ func CloseClientDB() {
 	}
 
 	// TODO optional you can log your closed MongoDB client
-	fmt.Println("Connection to MongoDB closed.")
+	// fmt.Println("Connection to MongoDB closed.")
 }
 
 func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
