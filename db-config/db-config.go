@@ -2,6 +2,7 @@ package dbconfig
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -36,7 +37,7 @@ func ResolveClientDB() *mongo.Client {
 	}
 
 	// TODO optional you can log your connected MongoDB client
-	// fmt.Println("Connection established...")
+	fmt.Println("Connection established...")
 	return client
 }
 

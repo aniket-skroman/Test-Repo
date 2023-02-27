@@ -34,6 +34,7 @@ var vehicleDistanceTravelCollection = dbconfig.GetCollection(dbconfig.ResolveCli
 var batteryTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_temp")
 var batteryMainCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_main")
 var batteryReportingCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_reporting")
+var Mclient *mongo.Client
 
 type VehicleRepository interface {
 	GetAllVehicles() ([]models.VehiclesData, error)
@@ -539,11 +540,9 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
-	go db.CreateMBMSRawAndSOCData(batteryData)
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
 	db.UpdateBMSReporting(dataToDelete)
-
 	return nil
 }
 
@@ -679,8 +678,6 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 	return err
 }
 
-var Mclient *mongo.Client
-
 func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.BatteryHardwareMain) error {
 	ConnectToMDB()
 	var remote = "telematics"
@@ -771,7 +768,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	}(operations)
 
 	_, err := rawDataCollection.BulkWrite(ctx, operations)
-
+	fmt.Println("bulk")
 	return err
 }
 

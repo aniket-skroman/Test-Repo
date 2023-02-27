@@ -232,6 +232,7 @@ func RunCronJob() {
 	log.SetOutput(f)
 
 	scheduler.Every(1).Minute().Do(func() {
+		fmt.Println("cron run ...")
 		err := vehicleService.BatteryTempToMain()
 		if err != nil {
 			log.Println(err)
@@ -239,34 +240,34 @@ func RunCronJob() {
 			log.Println("Battery temp to main run ....")
 		}
 	})
-	// scheduler.Every(1).Hour().Do(func() {
+	scheduler.Every(1).Hour().Do(func() {
 
-	// 	err := vehicleService.RefreshVehicleData()
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	} else {
-	// 		log.Println("Refresh vehicle data cron run...", time.Now())
-	// 	}
-	// })
+		err := vehicleService.RefreshVehicleData()
+		if err != nil {
+			log.Println(err)
+		} else {
+			log.Println("Refresh vehicle data cron run...", time.Now())
+		}
+	})
 
-	// scheduler.Every(24).Hour().Do(func() {
-	// 	err := vehicleService.CreateVehicleAlertHistory()
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	} else {
-	// 		log.Println("Vehicle Alert History cron run successfully...", time.Now())
-	// 	}
-	// })
+	scheduler.Every(24).Hour().Do(func() {
+		err := vehicleService.CreateVehicleAlertHistory()
+		if err != nil {
+			log.Println(err)
+		} else {
+			log.Println("Vehicle Alert History cron run successfully...", time.Now())
+		}
+	})
 
-	// scheduler.Every(24).Hour().Do(func() {
-	// 	err := vehicleService.CreateDistanceTravelHistory()
+	scheduler.Every(24).Hour().Do(func() {
+		err := vehicleService.CreateDistanceTravelHistory()
 
-	// 	if err != nil {
-	// 		log.Println("err from create distance travel history => ", err)
-	// 	} else {
-	// 		log.Println("Create Distance Travel History  run successfully....", time.Now())
-	// 	}
-	// })
+		if err != nil {
+			log.Println("err from create distance travel history => ", err)
+		} else {
+			log.Println("Create Distance Travel History  run successfully....", time.Now())
+		}
+	})
 
 	scheduler.StartBlocking()
 }
