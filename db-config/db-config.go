@@ -52,7 +52,7 @@ func CloseClientDB() {
 	}
 
 	// TODO optional you can log your closed MongoDB client
-	fmt.Println("Connection to MongoDB closed.")
+	// fmt.Println("Connection to MongoDB closed.")
 }
 
 func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {

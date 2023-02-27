@@ -34,6 +34,7 @@ var vehicleDistanceTravelCollection = dbconfig.GetCollection(dbconfig.ResolveCli
 var batteryTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_temp")
 var batteryMainCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_main")
 var batteryReportingCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_reporting")
+var Mclient *mongo.Client
 
 type VehicleRepository interface {
 	GetAllVehicles() ([]models.VehiclesData, error)
@@ -102,21 +103,14 @@ func (db *vehiclerepository) AddUpdateVehicleInformation(vehicleInfo models.Vehi
 	}
 	opt := options.FindOneAndReplace().SetUpsert(true)
 
-	res := db.vehicleCollection.FindOneAndReplace(context.TODO(), filter, vehicleInfo, opt)
-	fmt.Println("resul for update ", res.Err())
+	_ = db.vehicleCollection.FindOneAndReplace(context.TODO(), filter, vehicleInfo, opt)
+
 }
 
 func (db *vehiclerepository) AddVehicleLocationData(vehicleLocation models.VehicleLocationData) {
 
-	res, err := db.vehicleLocationConnection.InsertOne(context.Background(), vehicleLocation)
+	_, _ = db.vehicleLocationConnection.InsertOne(context.Background(), vehicleLocation)
 
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	fmt.Println(vehicleLocation)
-
-	fmt.Println(res.InsertedID)
 }
 
 func (db *vehiclerepository) RefreshVehicleData() ([]models.VehiclesData, error) {
@@ -231,16 +225,11 @@ func (db *vehiclerepository) TrackVehicleAlert() ([]models.VehiclesData, error) 
 
 	for i := range jsonMap.Root.VehicleData {
 		temp := models.VehiclesData{}
-		smpErr := smapping.FillStruct(&temp, smapping.MapFields(jsonMap.Root.VehicleData[i]))
-
-		if smpErr != nil {
-			fmt.Println("SMP Error =>", smpErr.Error())
-		}
+		_ = smapping.FillStruct(&temp, smapping.MapFields(jsonMap.Root.VehicleData[i]))
 
 		vehicleData = append(vehicleData, temp)
 	}
 
-	fmt.Println(len(vehicleData))
 	return vehicleData, nil
 }
 
@@ -306,10 +295,8 @@ func (db *vehiclerepository) GetOverSpeedAlerts() ([]models.VehicleAlerts, error
 	var vehicleAlerts []models.VehicleAlerts
 
 	if err := cursor.All(context.TODO(), &vehicleAlerts); err != nil {
-		fmt.Println("error from query", err)
+		return nil, err
 	}
-
-	fmt.Println("Vehicle alerts =>", len(vehicleAlerts))
 
 	return vehicleAlerts, nil
 }
@@ -333,10 +320,8 @@ func (db *vehiclerepository) GetAllVehicleFallAlerts() ([]models.VehicleFallAler
 	var vehicleAlerts []models.VehicleFallAlerts
 
 	if err := cursor.All(context.TODO(), &vehicleAlerts); err != nil {
-		fmt.Println("error from query", err)
+		return nil, err
 	}
-
-	fmt.Println("Vehicle alerts =>", len(vehicleAlerts))
 
 	return vehicleAlerts, nil
 }
@@ -461,9 +446,6 @@ func (db *vehiclerepository) AddTestData() error {
 	// if err != nil {
 	// 	return err
 	// }
-
-	// fmt.Println("result of test data => ", res)
-
 	// return nil
 
 	bmsTempCollection := dbconfig.GetCollection(dbconfig.ResolveClientDB(), "bms_temperature_alert")
@@ -471,13 +453,13 @@ func (db *vehiclerepository) AddTestData() error {
 	cursor, curErr := bmsTempCollection.Find(context.TODO(), bson.M{})
 
 	if curErr != nil {
-		fmt.Println(curErr)
+		return curErr
 	}
 
 	var data []models.BatteryTemperatureAlert
 
 	if err := cursor.All(context.TODO(), &data); err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	for i := range data {
@@ -486,8 +468,8 @@ func (db *vehiclerepository) AddTestData() error {
 			filter := bson.D{
 				bson.E{Key: "bms_id", Value: data[i].BMSID},
 			}
-			res, err := bmsTempCollection.DeleteOne(context.TODO(), filter)
-			fmt.Println(err, res)
+			_, _ = bmsTempCollection.DeleteOne(context.TODO(), filter)
+
 		}
 	}
 
@@ -558,11 +540,9 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
-	go db.CreateMBMSRawAndSOCData(batteryData)
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
 	db.UpdateBMSReporting(dataToDelete)
-
 	return nil
 }
 
@@ -576,15 +556,9 @@ func (db *vehiclerepository) DeleteBatteryTempData(batteryData []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := db.batteryTempConnection.DeleteMany(ctx, filter)
+	_, err := db.batteryTempConnection.DeleteMany(ctx, filter)
 
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("delete result => ", res.DeletedCount)
-
-	return nil
+	return err
 }
 
 func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwareMain) error {
@@ -662,15 +636,9 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := db.batteryMainConnection.BulkWrite(ctx, operations)
+	_, err := db.batteryMainConnection.BulkWrite(ctx, operations)
 
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(res.InsertedCount)
-
-	return nil
+	return err
 }
 
 func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
@@ -705,18 +673,10 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := db.batteryReportingConnection.BulkWrite(ctx, operations)
+	_, err := db.batteryReportingConnection.BulkWrite(ctx, operations)
 
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(res.InsertedCount)
-
-	return nil
+	return err
 }
-
-var Mclient *mongo.Client
 
 func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.BatteryHardwareMain) error {
 	ConnectToMDB()
@@ -803,16 +763,12 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	go func(data []mongo.WriteModel) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, err := socDataCollection.BulkWrite(ctx, data)
-
-		if err != nil {
-			fmt.Println(err)
-		}
+		_, _ = socDataCollection.BulkWrite(ctx, data)
 
 	}(operations)
 
 	_, err := rawDataCollection.BulkWrite(ctx, operations)
-
+	fmt.Println("bulk")
 	return err
 }
 

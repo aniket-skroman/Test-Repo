@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -45,15 +44,9 @@ func NewVehicleService(repo repositories.VehicleRepository) VehicleServices {
 }
 
 func (ser *vehicleservice) AddUpdateVehicleInformation(vehicleInfo []models.VehiclesData) bool {
-	fmt.Println("service get called")
 	for i := range vehicleInfo {
-		fmt.Println("data from service to repo => ", vehicleInfo[i])
 		ser.vehicleRepository.AddUpdateVehicleInformation(vehicleInfo[i])
-
 	}
-
-	fmt.Println("service get return")
-
 	return true
 }
 
@@ -71,8 +64,6 @@ func (s *vehicleservice) RefreshVehicleData() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("proxy data len => ", len(vehicleData))
 	vehicleDataForAlerts := []models.VehiclesData{}
 
 	for i := range vehicleData {
@@ -87,16 +78,14 @@ func (s *vehicleservice) RefreshVehicleData() error {
 		insErr := s.vehicleRepository.UpdateVehicleData(vehicleData[i])
 
 		if insErr != nil {
-			fmt.Println("Insert error => ", insErr)
+			return insErr
 		}
 
 	}
 
 	serr := s.TrackVehicleAlert(vehicleDataForAlerts)
-	if serr != nil {
-		fmt.Println("Error trackVehicleAlert from background thread =>", serr)
-	}
-	return nil
+
+	return serr
 }
 
 func (s *vehicleservice) TrackVehicleAlert(vehicleData []models.VehiclesData) error {
@@ -133,7 +122,6 @@ func (s *vehicleservice) TrackVehicleAlert(vehicleData []models.VehiclesData) er
 }
 
 func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData) error {
-	fmt.Println("Limit for over speed & angle => ", overSpeedLimitChannel, maxAngleLimit, minAngleLimit)
 	for i := range vehicleData {
 		speed, _ := strconv.Atoi(vehicleData[i].Speed)
 
@@ -146,12 +134,9 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 				vehicleAlertData.BikeNo = vehicleData[i].VehicleNo
 			}
 
-			fmt.Println("Vehicle detect with high speed", vehicleAlertData, speed)
 			vehicleAlertData.BikeSpeed = append(vehicleAlertData.BikeSpeed, speed)
-			upErr := s.UpdateVehicleAlert(vehicleAlertData)
-			if upErr != nil {
-				fmt.Println("Error occur for call update vehicle alert call", upErr)
-			}
+			_ = s.UpdateVehicleAlert(vehicleAlertData)
+
 		}
 
 		if angel < 0 || angel > maxAngleLimit {
@@ -163,11 +148,8 @@ func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData
 
 			vehicleAlertData.BikeAngle = append(vehicleAlertData.BikeAngle, angel)
 
-			fmt.Println("Vehicle detect with fall", reflect.TypeOf(vehicleAlertData.BikeAngle), angel)
-			upErr := s.UpdateVehicleFallAlert(vehicleAlertData)
-			if upErr != nil {
-				fmt.Println("Error occur for call update vehicle alert call", upErr)
-			}
+			_ = s.UpdateVehicleFallAlert(vehicleAlertData)
+
 		}
 
 	}
@@ -204,7 +186,6 @@ func (s *vehicleservice) CreateVehicleAlertHistory() error {
 	res, err := s.vehicleRepository.GetOverSpeedAlerts()
 
 	if err != nil {
-		fmt.Println("Vehicle Alert History from Service", err)
 		return err
 	}
 
@@ -213,7 +194,7 @@ func (s *vehicleservice) CreateVehicleAlertHistory() error {
 	fallAlerts, fallErr := s.vehicleRepository.GetAllVehicleFallAlerts()
 
 	if fallErr != nil {
-		fmt.Println("Error from get a vehicle fall history =>", fallErr)
+		return fallErr
 	} else {
 		err = s.vehicleRepository.CreateVehicleFallAlertHistory(fallAlerts)
 	}
