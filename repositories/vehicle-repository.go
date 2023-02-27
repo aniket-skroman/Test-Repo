@@ -540,6 +540,7 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
+	go db.CreateMBMSRawAndSOCData(batteryData)
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
 	db.UpdateBMSReporting(dataToDelete)
@@ -679,7 +680,7 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 }
 
 func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.BatteryHardwareMain) error {
-	ConnectToMDB()
+	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
 	socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
@@ -768,23 +769,52 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	}(operations)
 
 	_, err := rawDataCollection.BulkWrite(ctx, operations)
-	fmt.Println("bulk")
+
+	cursor, curErr := socDataCollection.Find(context.TODO(), []bson.M{})
+
+	fmt.Println("cursor error => ", curErr)
+	var dataD []bson.M
+
+	if bsErr := cursor.All(context.TODO(), &dataD); bsErr != nil {
+		fmt.Println("BS Err => ", bsErr)
+	}
+
+	fmt.Println("data from cursor => ", dataD)
+
 	return err
 }
 
-func ConnectToMDB() {
-	if Mclient == nil {
-		var err error
-		clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
-		Mclient, err = mongo.Connect(context.Background(), clientOptions)
-		if err != nil {
-			log.Fatal(err)
-		}
+func ConnectToMDB() *mongo.Client {
+	// if Mclient == nil {
+	// 	var err error
+	// 	clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
+	// 	Mclient, err = mongo.Connect(context.Background(), clientOptions)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
 
-		// check the connection
-		err = Mclient.Ping(context.Background(), nil)
-		if err != nil {
-			log.Fatal(err)
-		}
+	// 	// check the connection
+	// 	err = Mclient.Ping(context.Background(), nil)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
+
+	var err error
+	//TODO add to your .env.yml or .config.yml MONGODB_URI: mongodb://localhost:27017
+	clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
+	Mclient, err = mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	// check the connection
+	err = Mclient.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO optional you can log your connected MongoDB client
+	fmt.Println("Connection established...")
+	return Mclient
 }
