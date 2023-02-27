@@ -699,8 +699,8 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		hardWareData[i].CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
-		res, _ := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
-		fmt.Println(res.InsertedID)
+		rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+		// fmt.Println(res.InsertedID)
 	}
 
 	// var operations []mongo.WriteModel
