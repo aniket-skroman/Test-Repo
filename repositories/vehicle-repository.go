@@ -681,7 +681,6 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 }
 
 func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.BatteryHardwareMain) error {
-	fmt.Println("function get called...for client")
 	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
@@ -700,8 +699,8 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		hardWareData[i].CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
-		res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
-		fmt.Println(res.InsertedID, err)
+		res, _ := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+		fmt.Println(res.InsertedID)
 	}
 
 	// var operations []mongo.WriteModel
