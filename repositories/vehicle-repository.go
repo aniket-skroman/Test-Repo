@@ -764,17 +764,17 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// defer cancel()
 
 	go func(data []mongo.WriteModel) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_, _ = socDataCollection.BulkWrite(ctx, data)
+		// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// defer cancel()
+		_, _ = socDataCollection.BulkWrite(context.TODO(), data)
 
 	}(operations2)
 
-	_, err := rawDataCollection.BulkWrite(ctx, operations)
+	_, err := rawDataCollection.BulkWrite(context.TODO(), operations)
 
 	return err
 }
