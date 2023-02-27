@@ -10,7 +10,9 @@ import (
 )
 
 func EnvMongoURI() string {
-	return "mongodb+srv://aniket_mauto:9TxEsbh9vZVzIz68@shared-cluster.tb9e4zs.mongodb.net/test"
+	var dbURL = "mongodb+srv://aniket_mauto:9TxEsbh9vZVzIz68@shared-cluster.tb9e4zs.mongodb.net/test?maxPoolSize=200&w=majority"
+
+	return dbURL
 }
 
 var client *mongo.Client
