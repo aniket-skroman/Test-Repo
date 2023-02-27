@@ -540,8 +540,8 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
-	err := db.CreateMBMSRawAndSOCData(batteryData)
-	fmt.Println(err)
+	go db.CreateMBMSRawAndSOCData(batteryData)
+
 	// db.DeleteBatteryTempData(dataToDelete)
 	// db.AddBatteryToMain(batteryData)
 	// db.UpdateBMSReporting(dataToDelete)
@@ -690,89 +690,97 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	currentTime := time.Now()
 	isoDateTime := currentTime.Format(time.RFC3339)
 
-	var operations []mongo.WriteModel
-	var operations2 []mongo.WriteModel
-
 	for i := range hardWareData {
-		option := mongo.NewUpdateOneModel()
-		option.SetFilter(bson.D{
-			bson.E{Key: "bms_id", Value: hardWareData[i]},
-		})
-
 		LocalTimeStamp := helper.ConvertUTCToIndia()
 		localDate := LocalTimeStamp[0]
 		localTime := LocalTimeStamp[1]
-
-		update := bson.D{
-			bson.E{Key: "$set", Value: bson.D{
-				bson.E{Key: "type", Value: hardWareData[i].Type},
-				bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
-				bson.E{Key: "gsm_signal_strength", Value: hardWareData[i].GsmSignalStrength},
-				bson.E{Key: "gps_signal_strength", Value: hardWareData[i].GpsSignalStrength},
-				bson.E{Key: "gps_satellite_in_view_count", Value: hardWareData[i].GpsSatelliteInViewCount},
-				bson.E{Key: "gnss_satellite_used_count", Value: hardWareData[i].GnssSatelliteUsedCount},
-				bson.E{Key: "gps_status", Value: hardWareData[i].GpsStatus},
-				bson.E{Key: "location_longitude", Value: hardWareData[i].LocationLongitude},
-				bson.E{Key: "location_latitude", Value: hardWareData[i].LocationLatitude},
-				bson.E{Key: "location_speed", Value: hardWareData[i].LocationSpeed},
-				bson.E{Key: "location_angle", Value: hardWareData[i].LocationAngle},
-				bson.E{Key: "iot_temperature", Value: hardWareData[i].IotTemperature},
-				bson.E{Key: "gprs_total_data_used", Value: hardWareData[i].GprsTotalDataUsed},
-				bson.E{Key: "software_version", Value: hardWareData[i].SoftwareVersion},
-				bson.E{Key: "bms_software_version", Value: hardWareData[i].BmsSoftwareVersion},
-				bson.E{Key: "iccid", Value: hardWareData[i].Iccid},
-				bson.E{Key: "imei", Value: hardWareData[i].Imei},
-				bson.E{Key: "gprs_apn", Value: hardWareData[i].GprsApn},
-				bson.E{Key: "is_first_fill", Value: true},
-				bson.E{Key: "battery_voltage", Value: hardWareData[i].BatteryVoltage},
-				bson.E{Key: "battery_current", Value: hardWareData[i].BatteryCurrent},
-				bson.E{Key: "battery_soc", Value: hardWareData[i].BatterySoc},
-				bson.E{Key: "battery_temperature", Value: hardWareData[i].BatteryTemperature},
-				bson.E{Key: "battery_remaining_capacity", Value: hardWareData[i].BatteryRemainingCapacity},
-				bson.E{Key: "battery_full_charge_capacity", Value: hardWareData[i].BatteryFullChargeCapacity},
-				bson.E{Key: "battery_cycle_count", Value: hardWareData[i].BatteryCycleCount},
-				bson.E{Key: "battery_rated_capacity", Value: hardWareData[i].BatteryRatedCapacity},
-				bson.E{Key: "battery_rated_voltage", Value: hardWareData[i].BatteryRatedVoltage},
-				bson.E{Key: "battery_version", Value: hardWareData[i].BatteryVersion},
-				bson.E{Key: "battery_manufacture_date", Value: hardWareData[i].BatteryManufactureDate},
-				bson.E{Key: "battery_manufacture_name", Value: hardWareData[i].BatteryManufactureName},
-				bson.E{Key: "battery_name", Value: hardWareData[i].BatteryName},
-				bson.E{Key: "battery_chem_id", Value: hardWareData[i].BatteryChemID},
-				bson.E{Key: "bms_bar_code", Value: hardWareData[i].BmsBarCode},
-				bson.E{Key: "is_second_fill", Value: true},
-				bson.E{Key: "cell_voltage_list_0", Value: hardWareData[i].CellVoltageList0},
-				bson.E{Key: "cell_voltage_list_1", Value: hardWareData[i].CellVoltageList1},
-				bson.E{Key: "history", Value: hardWareData[i].History},
-				bson.E{Key: "error_count", Value: hardWareData[i].ErrorCount},
-				bson.E{Key: "battery_status", Value: hardWareData[i].BatteryStatus},
-				bson.E{Key: "is_third_fill", Value: true},
-				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
-				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
-				bson.E{Key: "local_d", Value: localDate},
-				bson.E{Key: "local_t", Value: localTime},
-				bson.E{Key: "iso_timestamp", Value: isoDateTime},
-			}},
-		}
-		option.SetUpdate(&update)
-		option.SetUpsert(true)
-		operations = append(operations, option)
-		option2 := option
-		option2.SetUpsert(false)
-		operations2 = append(operations2, option2)
-
-		// filter := bson.D{
-		// 	bson.E{Key: "bms_id", Value: hardWareData[i]},
-		// }
-
-		// opts := options.Update().SetUpsert(true)
+		hardWareData[i].LocalDate = localDate
+		hardWareData[i].LocalTime = localTime
+		hardWareData[i].ISOTimeStamp = isoDateTime
+		hardWareData[i].CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
 		res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
 		fmt.Println(res.InsertedID, err)
-
 	}
 
-	bulkOption := options.BulkWriteOptions{}
-	bulkOption.SetOrdered(true)
+	// var operations []mongo.WriteModel
+	// var operations2 []mongo.WriteModel
+
+	// for i := range hardWareData {
+	// 	option := mongo.NewUpdateOneModel()
+	// 	option.SetFilter(bson.D{
+	// 		bson.E{Key: "bms_id", Value: hardWareData[i]},
+	// 	})
+
+	// 	LocalTimeStamp := helper.ConvertUTCToIndia()
+	// 	localDate := LocalTimeStamp[0]
+	// 	localTime := LocalTimeStamp[1]
+
+	// 	update := bson.D{
+	// 		bson.E{Key: "$set", Value: bson.D{
+	// 			bson.E{Key: "type", Value: hardWareData[i].Type},
+	// 			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
+	// 			bson.E{Key: "gsm_signal_strength", Value: hardWareData[i].GsmSignalStrength},
+	// 			bson.E{Key: "gps_signal_strength", Value: hardWareData[i].GpsSignalStrength},
+	// 			bson.E{Key: "gps_satellite_in_view_count", Value: hardWareData[i].GpsSatelliteInViewCount},
+	// 			bson.E{Key: "gnss_satellite_used_count", Value: hardWareData[i].GnssSatelliteUsedCount},
+	// 			bson.E{Key: "gps_status", Value: hardWareData[i].GpsStatus},
+	// 			bson.E{Key: "location_longitude", Value: hardWareData[i].LocationLongitude},
+	// 			bson.E{Key: "location_latitude", Value: hardWareData[i].LocationLatitude},
+	// 			bson.E{Key: "location_speed", Value: hardWareData[i].LocationSpeed},
+	// 			bson.E{Key: "location_angle", Value: hardWareData[i].LocationAngle},
+	// 			bson.E{Key: "iot_temperature", Value: hardWareData[i].IotTemperature},
+	// 			bson.E{Key: "gprs_total_data_used", Value: hardWareData[i].GprsTotalDataUsed},
+	// 			bson.E{Key: "software_version", Value: hardWareData[i].SoftwareVersion},
+	// 			bson.E{Key: "bms_software_version", Value: hardWareData[i].BmsSoftwareVersion},
+	// 			bson.E{Key: "iccid", Value: hardWareData[i].Iccid},
+	// 			bson.E{Key: "imei", Value: hardWareData[i].Imei},
+	// 			bson.E{Key: "gprs_apn", Value: hardWareData[i].GprsApn},
+	// 			bson.E{Key: "is_first_fill", Value: true},
+	// 			bson.E{Key: "battery_voltage", Value: hardWareData[i].BatteryVoltage},
+	// 			bson.E{Key: "battery_current", Value: hardWareData[i].BatteryCurrent},
+	// 			bson.E{Key: "battery_soc", Value: hardWareData[i].BatterySoc},
+	// 			bson.E{Key: "battery_temperature", Value: hardWareData[i].BatteryTemperature},
+	// 			bson.E{Key: "battery_remaining_capacity", Value: hardWareData[i].BatteryRemainingCapacity},
+	// 			bson.E{Key: "battery_full_charge_capacity", Value: hardWareData[i].BatteryFullChargeCapacity},
+	// 			bson.E{Key: "battery_cycle_count", Value: hardWareData[i].BatteryCycleCount},
+	// 			bson.E{Key: "battery_rated_capacity", Value: hardWareData[i].BatteryRatedCapacity},
+	// 			bson.E{Key: "battery_rated_voltage", Value: hardWareData[i].BatteryRatedVoltage},
+	// 			bson.E{Key: "battery_version", Value: hardWareData[i].BatteryVersion},
+	// 			bson.E{Key: "battery_manufacture_date", Value: hardWareData[i].BatteryManufactureDate},
+	// 			bson.E{Key: "battery_manufacture_name", Value: hardWareData[i].BatteryManufactureName},
+	// 			bson.E{Key: "battery_name", Value: hardWareData[i].BatteryName},
+	// 			bson.E{Key: "battery_chem_id", Value: hardWareData[i].BatteryChemID},
+	// 			bson.E{Key: "bms_bar_code", Value: hardWareData[i].BmsBarCode},
+	// 			bson.E{Key: "is_second_fill", Value: true},
+	// 			bson.E{Key: "cell_voltage_list_0", Value: hardWareData[i].CellVoltageList0},
+	// 			bson.E{Key: "cell_voltage_list_1", Value: hardWareData[i].CellVoltageList1},
+	// 			bson.E{Key: "history", Value: hardWareData[i].History},
+	// 			bson.E{Key: "error_count", Value: hardWareData[i].ErrorCount},
+	// 			bson.E{Key: "battery_status", Value: hardWareData[i].BatteryStatus},
+	// 			bson.E{Key: "is_third_fill", Value: true},
+	// 			bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+	// 			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+	// 			bson.E{Key: "local_d", Value: localDate},
+	// 			bson.E{Key: "local_t", Value: localTime},
+	// 			bson.E{Key: "iso_timestamp", Value: isoDateTime},
+	// 		}},
+	// 	}
+	// 	option.SetUpdate(&update)
+	// 	option.SetUpsert(true)
+	// 	operations = append(operations, option)
+	// 	option2 := option
+	// 	option2.SetUpsert(false)
+	// 	operations2 = append(operations2, option2)
+
+	// 	res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+	// 	fmt.Println(res.InsertedID, err)
+
+	// }
+
+	// bulkOption := options.BulkWriteOptions{}
+	// bulkOption.SetOrdered(true)
 
 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	// defer cancel()
