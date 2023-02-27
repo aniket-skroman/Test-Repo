@@ -540,10 +540,11 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
-	go db.CreateMBMSRawAndSOCData(batteryData)
-	db.DeleteBatteryTempData(dataToDelete)
-	db.AddBatteryToMain(batteryData)
-	db.UpdateBMSReporting(dataToDelete)
+	err := db.CreateMBMSRawAndSOCData(batteryData)
+	fmt.Println(err)
+	// db.DeleteBatteryTempData(dataToDelete)
+	// db.AddBatteryToMain(batteryData)
+	// db.UpdateBMSReporting(dataToDelete)
 	return nil
 }
 
@@ -680,6 +681,7 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 }
 
 func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.BatteryHardwareMain) error {
+	fmt.Println("function get called...for client")
 	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
@@ -689,6 +691,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	isoDateTime := currentTime.Format(time.RFC3339)
 
 	var operations []mongo.WriteModel
+	var operations2 []mongo.WriteModel
 
 	for i := range hardWareData {
 		option := mongo.NewUpdateOneModel()
@@ -753,6 +756,9 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		option.SetUpdate(&update)
 		option.SetUpsert(true)
 		operations = append(operations, option)
+		option2 := option
+		option2.SetUpsert(false)
+		operations2 = append(operations2, option2)
 	}
 
 	bulkOption := options.BulkWriteOptions{}
@@ -766,20 +772,9 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		defer cancel()
 		_, _ = socDataCollection.BulkWrite(ctx, data)
 
-	}(operations)
+	}(operations2)
 
 	_, err := rawDataCollection.BulkWrite(ctx, operations)
-
-	cursor, curErr := socDataCollection.Find(context.TODO(), []bson.M{})
-
-	fmt.Println("cursor error => ", curErr)
-	var dataD []bson.M
-
-	if bsErr := cursor.All(context.TODO(), &dataD); bsErr != nil {
-		fmt.Println("BS Err => ", bsErr)
-	}
-
-	fmt.Println("data from cursor => ", dataD)
 
 	return err
 }
