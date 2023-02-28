@@ -713,7 +713,58 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
 		}
 
-		res, err := socDataCollection.UpdateOne(context.TODO(), filter, &hardWareData[i], opts)
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "type", Value: hardWareData[i].Type},
+				bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
+				bson.E{Key: "gsm_signal_strength", Value: hardWareData[i].GsmSignalStrength},
+				bson.E{Key: "gps_signal_strength", Value: hardWareData[i].GpsSignalStrength},
+				bson.E{Key: "gps_satellite_in_view_count", Value: hardWareData[i].GpsSatelliteInViewCount},
+				bson.E{Key: "gnss_satellite_used_count", Value: hardWareData[i].GnssSatelliteUsedCount},
+				bson.E{Key: "gps_status", Value: hardWareData[i].GpsStatus},
+				bson.E{Key: "location_longitude", Value: hardWareData[i].LocationLongitude},
+				bson.E{Key: "location_latitude", Value: hardWareData[i].LocationLatitude},
+				bson.E{Key: "location_speed", Value: hardWareData[i].LocationSpeed},
+				bson.E{Key: "location_angle", Value: hardWareData[i].LocationAngle},
+				bson.E{Key: "iot_temperature", Value: hardWareData[i].IotTemperature},
+				bson.E{Key: "gprs_total_data_used", Value: hardWareData[i].GprsTotalDataUsed},
+				bson.E{Key: "software_version", Value: hardWareData[i].SoftwareVersion},
+				bson.E{Key: "bms_software_version", Value: hardWareData[i].BmsSoftwareVersion},
+				bson.E{Key: "iccid", Value: hardWareData[i].Iccid},
+				bson.E{Key: "imei", Value: hardWareData[i].Imei},
+				bson.E{Key: "gprs_apn", Value: hardWareData[i].GprsApn},
+				bson.E{Key: "is_first_fill", Value: true},
+				bson.E{Key: "battery_voltage", Value: hardWareData[i].BatteryVoltage},
+				bson.E{Key: "battery_current", Value: hardWareData[i].BatteryCurrent},
+				bson.E{Key: "battery_soc", Value: hardWareData[i].BatterySoc},
+				bson.E{Key: "battery_temperature", Value: hardWareData[i].BatteryTemperature},
+				bson.E{Key: "battery_remaining_capacity", Value: hardWareData[i].BatteryRemainingCapacity},
+				bson.E{Key: "battery_full_charge_capacity", Value: hardWareData[i].BatteryFullChargeCapacity},
+				bson.E{Key: "battery_cycle_count", Value: hardWareData[i].BatteryCycleCount},
+				bson.E{Key: "battery_rated_capacity", Value: hardWareData[i].BatteryRatedCapacity},
+				bson.E{Key: "battery_rated_voltage", Value: hardWareData[i].BatteryRatedVoltage},
+				bson.E{Key: "battery_version", Value: hardWareData[i].BatteryVersion},
+				bson.E{Key: "battery_manufacture_date", Value: hardWareData[i].BatteryManufactureDate},
+				bson.E{Key: "battery_manufacture_name", Value: hardWareData[i].BatteryManufactureName},
+				bson.E{Key: "battery_name", Value: hardWareData[i].BatteryName},
+				bson.E{Key: "battery_chem_id", Value: hardWareData[i].BatteryChemID},
+				bson.E{Key: "bms_bar_code", Value: hardWareData[i].BmsBarCode},
+				bson.E{Key: "is_second_fill", Value: true},
+				bson.E{Key: "cell_voltage_list_0", Value: hardWareData[i].CellVoltageList0},
+				bson.E{Key: "cell_voltage_list_1", Value: hardWareData[i].CellVoltageList1},
+				bson.E{Key: "history", Value: hardWareData[i].History},
+				bson.E{Key: "error_count", Value: hardWareData[i].ErrorCount},
+				bson.E{Key: "battery_status", Value: hardWareData[i].BatteryStatus},
+				bson.E{Key: "is_third_fill", Value: true},
+				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+				bson.E{Key: "local_d", Value: isoDateTime},
+				bson.E{Key: "local_t", Value: localTime},
+				bson.E{Key: "iso_timestamp", Value: isoDateTime},
+			}},
+		}
+
+		res, err := socDataCollection.UpdateOne(context.TODO(), filter, &update, opts)
 		if err != nil {
 			fmt.Println("Error from raw collection => ", err)
 		} else {
