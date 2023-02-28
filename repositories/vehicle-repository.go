@@ -764,12 +764,12 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 			}},
 		}
 
-		res, err := socDataCollection.UpdateOne(context.TODO(), filter, &update, opts)
-		if err != nil {
-			fmt.Println("Error from raw collection => ", err)
-		} else {
-			fmt.Println("Inserted Ids from raw : ", res.UpsertedCount, res.MatchedCount, res.ModifiedCount)
-		}
+		socDataCollection.UpdateOne(context.TODO(), filter, &update, opts)
+		// if err != nil {
+		// 	fmt.Println("Error from raw collection => ", err)
+		// } else {
+		// 	fmt.Println("Inserted Ids from raw : ", res.UpsertedCount, res.MatchedCount, res.ModifiedCount)
+		// }
 	}
 
 	// var operations []mongo.WriteModel
