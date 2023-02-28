@@ -698,6 +698,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		hardWareData[i].ISOTimeStamp = isoDateTime
 		hardWareData[i].CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+		hardWareData[i].Id = primitive.NewObjectID()
 
 		res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
 		if err != nil {
