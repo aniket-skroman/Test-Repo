@@ -706,6 +706,8 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		// 	fmt.Println("Inserted Ids from raw : ", res.InsertedID)
 		// }
 
+		hardWareData[i].LocalDate = isoDateTime
+
 		opts := options.Update().SetUpsert(true)
 		filter := bson.D{
 			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
