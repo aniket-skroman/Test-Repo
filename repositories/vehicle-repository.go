@@ -713,8 +713,12 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
 		}
 
-		socDataCollection.UpdateOne(context.TODO(), filter, &hardWareData[i], opts)
-
+		res, err := socDataCollection.UpdateOne(context.TODO(), filter, &hardWareData[i], opts)
+		if err != nil {
+			fmt.Println("Error from raw collection => ", err)
+		} else {
+			fmt.Println("Inserted Ids from raw : ", res.UpsertedCount, res.MatchedCount, res.ModifiedCount)
+		}
 	}
 
 	// var operations []mongo.WriteModel
