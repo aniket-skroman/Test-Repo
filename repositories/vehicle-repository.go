@@ -699,12 +699,12 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 		hardWareData[i].Id = primitive.NewObjectID()
 
-		res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
-		if err != nil {
-			fmt.Println("Error from raw collection => ", err)
-		} else {
-			fmt.Println("Inserted Ids from raw : ", res.InsertedID)
-		}
+		rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+		// if err != nil {
+		// 	fmt.Println("Error from raw collection => ", err)
+		// } else {
+		// 	fmt.Println("Inserted Ids from raw : ", res.InsertedID)
+		// }
 
 		// opts := options.Update().SetUpsert(true)
 		// filter := bson.D{
