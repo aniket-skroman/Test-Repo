@@ -541,10 +541,9 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 	}
 
 	go db.CreateMBMSRawAndSOCData(batteryData)
-
-	// db.DeleteBatteryTempData(dataToDelete)
-	// db.AddBatteryToMain(batteryData)
-	// db.UpdateBMSReporting(dataToDelete)
+	db.DeleteBatteryTempData(dataToDelete)
+	db.AddBatteryToMain(batteryData)
+	db.UpdateBMSReporting(dataToDelete)
 	return nil
 }
 
@@ -684,7 +683,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
-	// socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
+	// socDataCollection := Mclient.Database(remote).Collection("bms_soc_updateddata")
 
 	currentTime := time.Now()
 	isoDateTime := currentTime.Format(time.RFC3339)
@@ -706,6 +705,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		} else {
 			fmt.Println("Inserted Ids from raw : ", res.InsertedID)
 		}
+
 		// opts := options.Update().SetUpsert(true)
 		// filter := bson.D{
 		// 	bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
