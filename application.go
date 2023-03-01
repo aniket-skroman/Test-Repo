@@ -232,7 +232,7 @@ func RunCronJob() {
 	log.SetOutput(f)
 
 	scheduler.Every(1).Minute().Do(func() {
-		fmt.Println("cron run ...")
+		// fmt.Println("cron run ...")
 		err := vehicleService.BatteryTempToMain()
 		if err != nil {
 			log.Println(err)

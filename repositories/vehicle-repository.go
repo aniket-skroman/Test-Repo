@@ -898,6 +898,6 @@ func ConnectToMDB() *mongo.Client {
 	}
 
 	// TODO optional you can log your connected MongoDB client
-	fmt.Println("Client DB Connection established...")
+	fmt.Println("Client DB Connection established...", time.Now())
 	return Mclient
 }
