@@ -543,7 +543,7 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 	go db.CreateMBMSRawAndSOCData(batteryData)
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
-	db.UpdateBMSReporting(dataToDelete)
+	// db.UpdateBMSReporting(dataToDelete)
 	return nil
 }
 
