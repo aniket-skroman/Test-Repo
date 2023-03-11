@@ -212,3 +212,15 @@ type VehicleDistanceTravel struct {
 	UpdatedAt      primitive.DateTime `json:"updated_at" bson:"updated_at"`
 	LocalTimestamp string             `json:"local_timestamp" bson:"local_timestamp"`
 }
+
+type BatteryTemperatureAlertHistory struct {
+	Id                 primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	BMSID              string             `json:"bms_id" bson:"bms_id"`
+	AlertCount         int64              `json:"alert_count" bson:"alert_count"`
+	AlertType          string             `json:"alert_type" bson:"alert_type"`
+	BatteryTemperature []int              `json:"battery_temperature" bson:"battery_temperature"`
+	CreateAt           primitive.DateTime `json:"create_at" bson:"create_at"`
+	UpdateAt           primitive.DateTime `json:"update_at" bson:"update_at"`
+	ISTTimeStamp       string             `json:"ist_timestamp" bson:"ist_timestamp"`
+	HistoryTimestamp   primitive.DateTime `json:"history_timestamp" bson:"history_timestamp"`
+}

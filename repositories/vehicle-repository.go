@@ -34,6 +34,7 @@ var vehicleDistanceTravelCollection = dbconfig.GetCollection(dbconfig.ResolveCli
 var batteryTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_temp")
 var batteryMainCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_main")
 var batteryReportingCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_reporting")
+var bmsTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "bms_temperature_alert")
 var Mclient *mongo.Client
 
 type VehicleRepository interface {
@@ -53,6 +54,9 @@ type VehicleRepository interface {
 	CreateOverSpeedAlertHistory(vehicleAlerts []models.VehicleAlerts) error
 	CreateVehicleFallAlertHistory(vehicleAlerts []models.VehicleFallAlerts) error
 	CreateDistanceTravelHistory(vehicleData []models.VehiclesData) error
+	CreateBatteryTemperatureHistory(batteryTemperature []models.BatteryTemperatureAlert) error
+	GetBatteryTemperatureData() ([]models.BatteryTemperatureAlert, error)
+
 	// ResetDistanceTravel()
 	DeleteTodayAlert(alertId primitive.ObjectID) error
 	DeleteTodayFallAlert(alertId primitive.ObjectID) error
@@ -79,6 +83,7 @@ type vehiclerepository struct {
 	batteryTempConnection           *mongo.Collection
 	batteryMainConnection           *mongo.Collection
 	batteryReportingConnection      *mongo.Collection
+	batteryTemperatureConnection    *mongo.Collection
 }
 
 func NewVehicleRepository() VehicleRepository {
@@ -94,6 +99,7 @@ func NewVehicleRepository() VehicleRepository {
 		batteryTempConnection:           batteryTempCollection,
 		batteryMainConnection:           batteryMainCollection,
 		batteryReportingConnection:      batteryReportingCollection,
+		batteryTemperatureConnection:    bmsTempCollection,
 	}
 }
 
@@ -557,7 +563,7 @@ func (db *vehiclerepository) DeleteBatteryTempData(batteryData []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := db.batteryTempConnection.DeleteMany(ctx, filter)
+	_, err := db.batteryTemperatureConnection.DeleteMany(ctx, filter)
 
 	return err
 }
@@ -865,6 +871,62 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 	// fmt.Println(res1, res2)
 	// fmt.Println(err1, err2)
 	return nil
+}
+
+func (db *vehiclerepository) CreateBatteryTemperatureHistory(batteryTemperatureData []models.BatteryTemperatureAlert) error {
+	dataToDelete := []string{}
+
+	for i := range batteryTemperatureData {
+		currentTime := primitive.NewDateTimeFromTime(time.Now())
+		temp := models.BatteryTemperatureAlertHistory{}
+		temp.AlertCount = batteryTemperatureData[i].TotalAttempt
+		temp.BMSID = batteryTemperatureData[i].BMSID
+		temp.BatteryTemperature = batteryTemperatureData[i].Temperature
+		temp.HistoryTimestamp = currentTime
+		temp.CreateAt = currentTime
+		temp.UpdateAt = currentTime
+		temp.AlertType = "battery_temperature"
+
+		dataToDelete = append(dataToDelete, batteryTemperatureData[i].BMSID)
+
+		ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+		defer cancel()
+
+		_, _ = db.vehicleAlertHistoryConnection.InsertOne(ctx, temp)
+	}
+
+	err := db.DeleteBatteryTempData(dataToDelete)
+
+	return err
+
+}
+
+func (db *vehiclerepository) GetBatteryTemperatureData() ([]models.BatteryTemperatureAlert, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+
+	filter := []bson.M{
+		{"$match": bson.M{
+			"created_at": bson.M{
+				"$lte": primitive.NewDateTimeFromTime(time.Now()),
+			},
+		},
+		},
+	}
+
+	cursor, curErr := db.batteryTemperatureConnection.Aggregate(ctx, filter)
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	batteryData := []models.BatteryTemperatureAlert{}
+
+	if err := cursor.All(context.TODO(), &batteryData); err != nil {
+		return nil, err
+	}
+
+	return batteryData, nil
+
 }
 
 func ConnectToMDB() *mongo.Client {

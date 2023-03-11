@@ -269,6 +269,14 @@ func RunCronJob() {
 		}
 	})
 
+	scheduler.Every(24).Hour().Do(func() {
+		err := vehicleService.CreateBatteryTemperatureHistory()
+		if err != nil {
+			log.Println("err from create distance travel history => ", err)
+		} else {
+			log.Println("Create Battery Temperature History  run successfully....", time.Now())
+		}
+	})
 	scheduler.StartBlocking()
 }
 
