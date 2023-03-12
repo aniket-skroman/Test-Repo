@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -227,7 +226,6 @@ func (s *vehicleservice) BatteryTempToMain() error {
 
 func (s *vehicleservice) CreateBatteryTemperatureHistory() error {
 	res, err := s.vehicleRepository.GetBatteryTemperatureData()
-	fmt.Println("result data...", res)
 	if err != nil {
 		return err
 	}

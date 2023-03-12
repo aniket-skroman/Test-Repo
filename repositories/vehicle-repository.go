@@ -60,6 +60,7 @@ type VehicleRepository interface {
 	// ResetDistanceTravel()
 	DeleteTodayAlert(alertId primitive.ObjectID) error
 	DeleteTodayFallAlert(alertId primitive.ObjectID) error
+	DeleteBatteryTemperatureAlert(batteryTempAlert []string) error
 
 	GetAlertLimit(alertType string) (models.AlertConfig, error)
 
@@ -563,8 +564,22 @@ func (db *vehiclerepository) DeleteBatteryTempData(batteryData []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := db.batteryTemperatureConnection.DeleteMany(ctx, filter)
+	res, err := db.batteryTempConnection.DeleteMany(ctx, filter)
+	fmt.Println("Result data from delete : ", res.DeletedCount)
+	return err
+}
 
+func (db *vehiclerepository) DeleteBatteryTemperatureAlert(batteryTempAlert []string) error {
+	filter := bson.D{
+		bson.E{Key: "bms_id", Value: bson.D{
+			bson.E{Key: "$in", Value: batteryTempAlert},
+		}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := db.batteryTemperatureConnection.DeleteMany(ctx, filter)
 	return err
 }
 
@@ -895,7 +910,7 @@ func (db *vehiclerepository) CreateBatteryTemperatureHistory(batteryTemperatureD
 		_, _ = db.vehicleAlertHistoryConnection.InsertOne(ctx, temp)
 	}
 
-	err := db.DeleteBatteryTempData(dataToDelete)
+	err := db.DeleteBatteryTemperatureAlert(dataToDelete)
 
 	return err
 
