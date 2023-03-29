@@ -602,6 +602,22 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 		localDate := LocalTimeStamp[0]
 		localTime := LocalTimeStamp[1]
 
+		batterySpeed := batteryData[i].LocationSpeed
+		var batteryStatus, chargingStatus string 
+		
+		if batterySpeed > 0 {
+			batteryStatus = "moving"
+		}else{
+			batteryStatus = "idle"
+		}
+
+		if batteryData[i].BatteryCurrent > 0 {
+			chargingStatus = "Discharge"
+		}else{
+			chargingStatus = "charge"
+		}
+		
+
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
 				bson.E{Key: "type", Value: batteryData[i].Type},
@@ -643,7 +659,8 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 				bson.E{Key: "cell_voltage_list_1", Value: batteryData[i].CellVoltageList1},
 				bson.E{Key: "history", Value: batteryData[i].History},
 				bson.E{Key: "error_count", Value: batteryData[i].ErrorCount},
-				bson.E{Key: "battery_status", Value: batteryData[i].BatteryStatus},
+				bson.E{Key: "battery_status", Value: batteryStatus},
+				bson.E{Key: "battery_charge_status", Value: chargingStatus},
 				bson.E{Key: "is_third_fill", Value: true},
 				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
