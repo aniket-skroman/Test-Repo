@@ -6,7 +6,7 @@ type BatteryTemperatureAlert struct {
 	ID             primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	BMSID          string             `json:"bms_id" bson:"bms_id"`
 	TotalAttempt   int64              `json:"total_attempt" bson:"total_attempt"`
-	Temperature    []int              `json:"temperature" bson:"temperature"`
+	Temperature    []int              `json:"battery_temperature:" bson:"battery_temperature:"`
 	CreatedAt      primitive.DateTime `json:"created_at" bson:"created_at"`
 	UpdateAt       primitive.DateTime `json:"updated_at" bson:"updated_at"`
 	LocalTimeStamp interface{}        `json:"local_timestamp" bson:"local_timestamp"`
@@ -64,4 +64,16 @@ type BatteryHardwareMain struct {
 
 type BMSIdList struct {
 	BMSID []string `json:"bms_id" bson:"bms_id"`
+}
+
+type LocationData struct {
+	Latitude  int `json:"latitude" bson:"latitude"`
+	Longitude int `json:"longitude" bson:"longitude"`
+}
+
+type BatteryDistanceTravelled struct {
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	BMSID     string             `json:"bms_id" bson:"bms_id"`
+	Location  []LocationData     `json:"location" bson:"location"`
+	CreatedAt primitive.DateTime `json:"created_at" bson:"created_at"`
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	
 	"reflect"
 	"strconv"
 	"sync"
@@ -229,6 +230,8 @@ func (s *vehicleservice) CreateBatteryTemperatureHistory() error {
 	if err != nil {
 		return err
 	}
+
+	
 
 	if err := s.vehicleRepository.CreateBatteryTemperatureHistory(res); err != nil {
 		return err

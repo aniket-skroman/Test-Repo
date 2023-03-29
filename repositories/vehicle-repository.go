@@ -35,6 +35,7 @@ var batteryTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "
 var batteryMainCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_main")
 var batteryReportingCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_reporting")
 var bmsTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "bms_temperature_alert")
+var batteryDistanceTravelledCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_distance_travelled")
 var Mclient *mongo.Client
 
 type VehicleRepository interface {
@@ -68,39 +69,42 @@ type VehicleRepository interface {
 	AddBatteryToMain(batteryData []models.BatteryHardwareMain) error
 	DeleteBatteryTempData(batteryData []string) error
 	UpdateBMSReporting(batteryData []string) error
+	UpdateBMSDistanceTravelled([]models.BatteryHardwareMain) error
 
 	AddTestData() error
 }
 
 type vehiclerepository struct {
-	vehicleCollection               *mongo.Collection
-	vehicleLocationConnection       *mongo.Collection
-	vehicleAlertConnection          *mongo.Collection
-	vehicleAlertHistoryConnection   *mongo.Collection
-	alertConfigConnection           *mongo.Collection
-	vehicleFallAlertsConnection     *mongo.Collection
-	testConnection                  *mongo.Collection
-	vehicleDistanceTravelConnection *mongo.Collection
-	batteryTempConnection           *mongo.Collection
-	batteryMainConnection           *mongo.Collection
-	batteryReportingConnection      *mongo.Collection
-	batteryTemperatureConnection    *mongo.Collection
+	vehicleCollection                  *mongo.Collection
+	vehicleLocationConnection          *mongo.Collection
+	vehicleAlertConnection             *mongo.Collection
+	vehicleAlertHistoryConnection      *mongo.Collection
+	alertConfigConnection              *mongo.Collection
+	vehicleFallAlertsConnection        *mongo.Collection
+	testConnection                     *mongo.Collection
+	vehicleDistanceTravelConnection    *mongo.Collection
+	batteryTempConnection              *mongo.Collection
+	batteryMainConnection              *mongo.Collection
+	batteryReportingConnection         *mongo.Collection
+	batteryTemperatureConnection       *mongo.Collection
+	batteryDistanceTravelledConnection *mongo.Collection
 }
 
 func NewVehicleRepository() VehicleRepository {
 	return &vehiclerepository{
-		vehicleCollection:               vehicleCollection,
-		vehicleLocationConnection:       vehicleLocationCollection,
-		vehicleAlertConnection:          vehicleAlertCollection,
-		vehicleAlertHistoryConnection:   vehicleAlertHistoryCollection,
-		alertConfigConnection:           alertMasterConfigCollection,
-		vehicleFallAlertsConnection:     vehicleFallAlertCollection,
-		testConnection:                  testCollection,
-		vehicleDistanceTravelConnection: vehicleDistanceTravelCollection,
-		batteryTempConnection:           batteryTempCollection,
-		batteryMainConnection:           batteryMainCollection,
-		batteryReportingConnection:      batteryReportingCollection,
-		batteryTemperatureConnection:    bmsTempCollection,
+		vehicleCollection:                  vehicleCollection,
+		vehicleLocationConnection:          vehicleLocationCollection,
+		vehicleAlertConnection:             vehicleAlertCollection,
+		vehicleAlertHistoryConnection:      vehicleAlertHistoryCollection,
+		alertConfigConnection:              alertMasterConfigCollection,
+		vehicleFallAlertsConnection:        vehicleFallAlertCollection,
+		testConnection:                     testCollection,
+		vehicleDistanceTravelConnection:    vehicleDistanceTravelCollection,
+		batteryTempConnection:              batteryTempCollection,
+		batteryMainConnection:              batteryMainCollection,
+		batteryReportingConnection:         batteryReportingCollection,
+		batteryTemperatureConnection:       bmsTempCollection,
+		batteryDistanceTravelledConnection: batteryDistanceTravelledCollection,
 	}
 }
 
@@ -163,8 +167,8 @@ func (db *vehiclerepository) UpdateVehicleData(vehicle models.VehiclesData) erro
 		currentLatitude := helper.ConvertStrToFloat(vehicle.Latitude)
 		currentLongitude := helper.ConvertStrToFloat(vehicle.Longitude)
 
-		pointA := helper.Coordinates{prevLatitude, prevLongitude}
-		pointB := helper.Coordinates{currentLatitude, currentLongitude}
+		pointA := helper.Coordinates{Latitude:prevLatitude, Longitude: prevLongitude}
+		pointB := helper.Coordinates{Latitude:currentLatitude,Longitude:  currentLongitude}
 		distance := pointA.Distance(pointB)
 
 		vehicle.DistanceTraveled = result.DistanceTraveled + distance
@@ -550,6 +554,7 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 	go db.CreateMBMSRawAndSOCData(batteryData)
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
+	db.UpdateBMSDistanceTravelled(batteryData)
 	// db.UpdateBMSReporting(dataToDelete)
 	return nil
 }
@@ -977,4 +982,43 @@ func ConnectToMDB() *mongo.Client {
 	// TODO optional you can log your connected MongoDB client
 	fmt.Println("Client DB Connection established...", time.Now())
 	return Mclient
+}
+
+func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.BatteryHardwareMain) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+
+	var operations []mongo.WriteModel
+
+	for i := range batteryData {
+		optionsA := mongo.NewUpdateOneModel()
+		optionsA.SetFilter(bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i].BmsID},
+		})
+
+		locationData := new(models.LocationData)
+		locationData.Latitude = batteryData[i].LocationLatitude
+		locationData.Longitude = batteryData[i].LocationLongitude
+
+		update := bson.D{
+			bson.E{Key: "$push", Value: bson.D{
+				bson.E{Key: "location", Value: locationData},
+			}},
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+			}},
+		}
+
+		optionsA.SetUpdate(update)
+		optionsA.SetUpsert(true)
+		operations = append(operations, optionsA)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	_, err := db.batteryDistanceTravelledConnection.BulkWrite(ctx, operations)
+	
+	return err
+
 }
