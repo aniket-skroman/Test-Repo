@@ -611,8 +611,8 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 			batteryStatus = "idle"
 		}
 
-		if batteryData[i].BatteryCurrent > 0 {
-			chargingStatus = "Discharge"
+		if batteryData[i].BatteryCurrent >= 0 {
+			chargingStatus = "discharge"
 		}else{
 			chargingStatus = "charge"
 		}
