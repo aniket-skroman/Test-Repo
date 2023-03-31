@@ -116,7 +116,7 @@ func (db *batteryRepository) GetIdleBattery() ([]models.BatteryHardwareMain, err
 		{
 			"$match": bson.M{
 				"updated_at": bson.M{
-					"$gte": last30Min,
+					"$lte": last30Min,
 				},
 				"battery_status": bson.M{
 					"$ne": "idle",
@@ -176,12 +176,19 @@ func (db *batteryRepository) UpdateBatteryIdleStatus(batteryData []models.Batter
 	return err
 }
 func (db *batteryRepository) GetMoveBattery() ([]models.BatteryHardwareMain, error) {
+	currentTime := primitive.NewDateTimeFromTime(time.Now())
+	last30Min := currentTime.Time().Add(-30 * time.Minute)
+
 	filter := []bson.M{
 		{
 			"$match": bson.M{
+				"updated_at": bson.M{
+					"$lte": last30Min,
+				},
 				"location_speed": bson.M{
 					"$gt": 0,
 				},
+				"battery_status":"idle",
 			},
 		},
 	}
