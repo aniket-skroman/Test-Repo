@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"time"
 
 	dbconfig "github.com/aniket0951/testproject/db-config"
@@ -225,6 +226,8 @@ const (
 
 var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
 var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
+var batteryRepo repositories.BatteryRepository = repositories.NewBatteryRepository()
+var batteryService services.BatteryService = services.NewBatteryService(batteryRepo)
 
 func RunCronJob() {
 	scheduler := gocron.NewScheduler(time.UTC)
@@ -232,7 +235,7 @@ func RunCronJob() {
 	log.SetOutput(f)
 
 	scheduler.Every(1).Minute().Do(func() {
-		fmt.Println("cron run ...")
+		fmt.Println("cron run ...battery to main : ", time.Now())
 		err := vehicleService.BatteryTempToMain()
 		if err != nil {
 			log.Println(err)
@@ -266,6 +269,23 @@ func RunCronJob() {
 			log.Println("err from create distance travel history => ", err)
 		} else {
 			log.Println("Create Distance Travel History  run successfully....", time.Now())
+		}
+	})
+
+	scheduler.Every(24).Hour().Do(func() {
+		err := vehicleService.CreateBatteryTemperatureHistory()
+		if err != nil {
+			log.Println("err from create distance travel history => ", err)
+		} else {
+			log.Println("Create Battery Temperature History  run successfully....", time.Now())
+		}
+	})
+	scheduler.Every(1).Minute().Do(func() {
+		err := batteryService.UpdateBatteryStatus()
+		if err != nil {
+			log.Println("Error from update battery status => ", err)
+		} else {
+			log.Println("Update battery status run successfully.....", time.Now())
 		}
 	})
 

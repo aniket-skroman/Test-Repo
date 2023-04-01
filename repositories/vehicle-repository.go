@@ -34,6 +34,8 @@ var vehicleDistanceTravelCollection = dbconfig.GetCollection(dbconfig.ResolveCli
 var batteryTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_temp")
 var batteryMainCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_main")
 var batteryReportingCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_reporting")
+var bmsTempCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "bms_temperature_alert")
+var batteryDistanceTravelledCollection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_distance_travelled")
 var Mclient *mongo.Client
 
 type VehicleRepository interface {
@@ -53,9 +55,13 @@ type VehicleRepository interface {
 	CreateOverSpeedAlertHistory(vehicleAlerts []models.VehicleAlerts) error
 	CreateVehicleFallAlertHistory(vehicleAlerts []models.VehicleFallAlerts) error
 	CreateDistanceTravelHistory(vehicleData []models.VehiclesData) error
+	CreateBatteryTemperatureHistory(batteryTemperature []models.BatteryTemperatureAlert) error
+	GetBatteryTemperatureData() ([]models.BatteryTemperatureAlert, error)
+
 	// ResetDistanceTravel()
 	DeleteTodayAlert(alertId primitive.ObjectID) error
 	DeleteTodayFallAlert(alertId primitive.ObjectID) error
+	DeleteBatteryTemperatureAlert(batteryTempAlert []string) error
 
 	GetAlertLimit(alertType string) (models.AlertConfig, error)
 
@@ -63,37 +69,42 @@ type VehicleRepository interface {
 	AddBatteryToMain(batteryData []models.BatteryHardwareMain) error
 	DeleteBatteryTempData(batteryData []string) error
 	UpdateBMSReporting(batteryData []string) error
+	UpdateBMSDistanceTravelled([]models.BatteryHardwareMain) error
 
 	AddTestData() error
 }
 
 type vehiclerepository struct {
-	vehicleCollection               *mongo.Collection
-	vehicleLocationConnection       *mongo.Collection
-	vehicleAlertConnection          *mongo.Collection
-	vehicleAlertHistoryConnection   *mongo.Collection
-	alertConfigConnection           *mongo.Collection
-	vehicleFallAlertsConnection     *mongo.Collection
-	testConnection                  *mongo.Collection
-	vehicleDistanceTravelConnection *mongo.Collection
-	batteryTempConnection           *mongo.Collection
-	batteryMainConnection           *mongo.Collection
-	batteryReportingConnection      *mongo.Collection
+	vehicleCollection                  *mongo.Collection
+	vehicleLocationConnection          *mongo.Collection
+	vehicleAlertConnection             *mongo.Collection
+	vehicleAlertHistoryConnection      *mongo.Collection
+	alertConfigConnection              *mongo.Collection
+	vehicleFallAlertsConnection        *mongo.Collection
+	testConnection                     *mongo.Collection
+	vehicleDistanceTravelConnection    *mongo.Collection
+	batteryTempConnection              *mongo.Collection
+	batteryMainConnection              *mongo.Collection
+	batteryReportingConnection         *mongo.Collection
+	batteryTemperatureConnection       *mongo.Collection
+	batteryDistanceTravelledConnection *mongo.Collection
 }
 
 func NewVehicleRepository() VehicleRepository {
 	return &vehiclerepository{
-		vehicleCollection:               vehicleCollection,
-		vehicleLocationConnection:       vehicleLocationCollection,
-		vehicleAlertConnection:          vehicleAlertCollection,
-		vehicleAlertHistoryConnection:   vehicleAlertHistoryCollection,
-		alertConfigConnection:           alertMasterConfigCollection,
-		vehicleFallAlertsConnection:     vehicleFallAlertCollection,
-		testConnection:                  testCollection,
-		vehicleDistanceTravelConnection: vehicleDistanceTravelCollection,
-		batteryTempConnection:           batteryTempCollection,
-		batteryMainConnection:           batteryMainCollection,
-		batteryReportingConnection:      batteryReportingCollection,
+		vehicleCollection:                  vehicleCollection,
+		vehicleLocationConnection:          vehicleLocationCollection,
+		vehicleAlertConnection:             vehicleAlertCollection,
+		vehicleAlertHistoryConnection:      vehicleAlertHistoryCollection,
+		alertConfigConnection:              alertMasterConfigCollection,
+		vehicleFallAlertsConnection:        vehicleFallAlertCollection,
+		testConnection:                     testCollection,
+		vehicleDistanceTravelConnection:    vehicleDistanceTravelCollection,
+		batteryTempConnection:              batteryTempCollection,
+		batteryMainConnection:              batteryMainCollection,
+		batteryReportingConnection:         batteryReportingCollection,
+		batteryTemperatureConnection:       bmsTempCollection,
+		batteryDistanceTravelledConnection: batteryDistanceTravelledCollection,
 	}
 }
 
@@ -156,8 +167,8 @@ func (db *vehiclerepository) UpdateVehicleData(vehicle models.VehiclesData) erro
 		currentLatitude := helper.ConvertStrToFloat(vehicle.Latitude)
 		currentLongitude := helper.ConvertStrToFloat(vehicle.Longitude)
 
-		pointA := helper.Coordinates{prevLatitude, prevLongitude}
-		pointB := helper.Coordinates{currentLatitude, currentLongitude}
+		pointA := helper.Coordinates{Latitude:prevLatitude, Longitude: prevLongitude}
+		pointB := helper.Coordinates{Latitude:currentLatitude,Longitude:  currentLongitude}
 		distance := pointA.Distance(pointB)
 
 		vehicle.DistanceTraveled = result.DistanceTraveled + distance
@@ -540,9 +551,11 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		dataToDelete = append(dataToDelete, batteryData[i].BmsID)
 	}
 
+	go db.CreateMBMSRawAndSOCData(batteryData)
 	db.DeleteBatteryTempData(dataToDelete)
 	db.AddBatteryToMain(batteryData)
-	db.UpdateBMSReporting(dataToDelete)
+	db.UpdateBMSDistanceTravelled(batteryData)
+	// db.UpdateBMSReporting(dataToDelete)
 	return nil
 }
 
@@ -556,8 +569,22 @@ func (db *vehiclerepository) DeleteBatteryTempData(batteryData []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := db.batteryTempConnection.DeleteMany(ctx, filter)
+	res, err := db.batteryTempConnection.DeleteMany(ctx, filter)
+	fmt.Println("Result data from delete : ", res.DeletedCount)
+	return err
+}
 
+func (db *vehiclerepository) DeleteBatteryTemperatureAlert(batteryTempAlert []string) error {
+	filter := bson.D{
+		bson.E{Key: "bms_id", Value: bson.D{
+			bson.E{Key: "$in", Value: batteryTempAlert},
+		}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := db.batteryTemperatureConnection.DeleteMany(ctx, filter)
 	return err
 }
 
@@ -574,6 +601,22 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 		LocalTimeStamp := helper.ConvertUTCToIndia()
 		localDate := LocalTimeStamp[0]
 		localTime := LocalTimeStamp[1]
+
+		batterySpeed := batteryData[i].LocationSpeed
+		var batteryStatus, chargingStatus string 
+		
+		if batterySpeed > 0 {
+			batteryStatus = "moving"
+		}else{
+			batteryStatus = "idle"
+		}
+
+		if batteryData[i].BatteryCurrent >= 0 {
+			chargingStatus = "discharge"
+		}else{
+			chargingStatus = "charge"
+		}
+		
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
@@ -616,7 +659,8 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 				bson.E{Key: "cell_voltage_list_1", Value: batteryData[i].CellVoltageList1},
 				bson.E{Key: "history", Value: batteryData[i].History},
 				bson.E{Key: "error_count", Value: batteryData[i].ErrorCount},
-				bson.E{Key: "battery_status", Value: batteryData[i].BatteryStatus},
+				bson.E{Key: "battery_status", Value: batteryStatus},
+				bson.E{Key: "battery_charge_status", Value: chargingStatus},
 				bson.E{Key: "is_third_fill", Value: true},
 				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
@@ -679,25 +723,38 @@ func (db *vehiclerepository) UpdateBMSReporting(batteryData []string) error {
 }
 
 func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.BatteryHardwareMain) error {
-	ConnectToMDB()
+	Mclient = ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
-	socDataCollection := Mclient.Database(remote).Collection("bms_socdata")
+	socDataCollection := Mclient.Database(remote).Collection("bms_soc_updated_data")
 
 	currentTime := time.Now()
 	isoDateTime := currentTime.Format(time.RFC3339)
 
-	var operations []mongo.WriteModel
-
 	for i := range hardWareData {
-		option := mongo.NewUpdateOneModel()
-		option.SetFilter(bson.D{
-			bson.E{Key: "bms_id", Value: hardWareData[i]},
-		})
-
 		LocalTimeStamp := helper.ConvertUTCToIndia()
 		localDate := LocalTimeStamp[0]
 		localTime := LocalTimeStamp[1]
+		hardWareData[i].LocalDate = localDate
+		hardWareData[i].LocalTime = localTime
+		hardWareData[i].ISOTimeStamp = isoDateTime
+		hardWareData[i].CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+		hardWareData[i].UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+		hardWareData[i].Id = primitive.NewObjectID()
+
+		rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+		// if err != nil {
+		// 	fmt.Println("Error from raw collection => ", err)
+		// } else {
+		// 	fmt.Println("Inserted Ids from raw : ", res.InsertedID)
+		// }
+
+		hardWareData[i].LocalDate = isoDateTime
+
+		opts := options.Update().SetUpsert(true)
+		filter := bson.D{
+			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
+		}
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
@@ -744,47 +801,241 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 				bson.E{Key: "is_third_fill", Value: true},
 				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
-				bson.E{Key: "local_d", Value: localDate},
+				bson.E{Key: "local_d", Value: isoDateTime},
 				bson.E{Key: "local_t", Value: localTime},
 				bson.E{Key: "iso_timestamp", Value: isoDateTime},
 			}},
 		}
-		option.SetUpdate(&update)
-		option.SetUpsert(true)
-		operations = append(operations, option)
+
+		socDataCollection.UpdateOne(context.TODO(), filter, &update, opts)
+		// if err != nil {
+		// 	fmt.Println("Error from raw collection => ", err)
+		// } else {
+		// 	fmt.Println("Inserted Ids from raw : ", res.UpsertedCount, res.MatchedCount, res.ModifiedCount)
+		// }
+	}
+
+	// var operations []mongo.WriteModel
+	// var operations2 []mongo.WriteModel
+
+	// for i := range hardWareData {
+	// 	option := mongo.NewUpdateOneModel()
+	// 	option.SetFilter(bson.D{
+	// 		bson.E{Key: "bms_id", Value: hardWareData[i]},
+	// 	})
+
+	// 	LocalTimeStamp := helper.ConvertUTCToIndia()
+	// 	localDate := LocalTimeStamp[0]
+	// 	localTime := LocalTimeStamp[1]
+
+	// 	update := bson.D{
+	// 		bson.E{Key: "$set", Value: bson.D{
+	// 			bson.E{Key: "type", Value: hardWareData[i].Type},
+	// 			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
+	// 			bson.E{Key: "gsm_signal_strength", Value: hardWareData[i].GsmSignalStrength},
+	// 			bson.E{Key: "gps_signal_strength", Value: hardWareData[i].GpsSignalStrength},
+	// 			bson.E{Key: "gps_satellite_in_view_count", Value: hardWareData[i].GpsSatelliteInViewCount},
+	// 			bson.E{Key: "gnss_satellite_used_count", Value: hardWareData[i].GnssSatelliteUsedCount},
+	// 			bson.E{Key: "gps_status", Value: hardWareData[i].GpsStatus},
+	// 			bson.E{Key: "location_longitude", Value: hardWareData[i].LocationLongitude},
+	// 			bson.E{Key: "location_latitude", Value: hardWareData[i].LocationLatitude},
+	// 			bson.E{Key: "location_speed", Value: hardWareData[i].LocationSpeed},
+	// 			bson.E{Key: "location_angle", Value: hardWareData[i].LocationAngle},
+	// 			bson.E{Key: "iot_temperature", Value: hardWareData[i].IotTemperature},
+	// 			bson.E{Key: "gprs_total_data_used", Value: hardWareData[i].GprsTotalDataUsed},
+	// 			bson.E{Key: "software_version", Value: hardWareData[i].SoftwareVersion},
+	// 			bson.E{Key: "bms_software_version", Value: hardWareData[i].BmsSoftwareVersion},
+	// 			bson.E{Key: "iccid", Value: hardWareData[i].Iccid},
+	// 			bson.E{Key: "imei", Value: hardWareData[i].Imei},
+	// 			bson.E{Key: "gprs_apn", Value: hardWareData[i].GprsApn},
+	// 			bson.E{Key: "is_first_fill", Value: true},
+	// 			bson.E{Key: "battery_voltage", Value: hardWareData[i].BatteryVoltage},
+	// 			bson.E{Key: "battery_current", Value: hardWareData[i].BatteryCurrent},
+	// 			bson.E{Key: "battery_soc", Value: hardWareData[i].BatterySoc},
+	// 			bson.E{Key: "battery_temperature", Value: hardWareData[i].BatteryTemperature},
+	// 			bson.E{Key: "battery_remaining_capacity", Value: hardWareData[i].BatteryRemainingCapacity},
+	// 			bson.E{Key: "battery_full_charge_capacity", Value: hardWareData[i].BatteryFullChargeCapacity},
+	// 			bson.E{Key: "battery_cycle_count", Value: hardWareData[i].BatteryCycleCount},
+	// 			bson.E{Key: "battery_rated_capacity", Value: hardWareData[i].BatteryRatedCapacity},
+	// 			bson.E{Key: "battery_rated_voltage", Value: hardWareData[i].BatteryRatedVoltage},
+	// 			bson.E{Key: "battery_version", Value: hardWareData[i].BatteryVersion},
+	// 			bson.E{Key: "battery_manufacture_date", Value: hardWareData[i].BatteryManufactureDate},
+	// 			bson.E{Key: "battery_manufacture_name", Value: hardWareData[i].BatteryManufactureName},
+	// 			bson.E{Key: "battery_name", Value: hardWareData[i].BatteryName},
+	// 			bson.E{Key: "battery_chem_id", Value: hardWareData[i].BatteryChemID},
+	// 			bson.E{Key: "bms_bar_code", Value: hardWareData[i].BmsBarCode},
+	// 			bson.E{Key: "is_second_fill", Value: true},
+	// 			bson.E{Key: "cell_voltage_list_0", Value: hardWareData[i].CellVoltageList0},
+	// 			bson.E{Key: "cell_voltage_list_1", Value: hardWareData[i].CellVoltageList1},
+	// 			bson.E{Key: "history", Value: hardWareData[i].History},
+	// 			bson.E{Key: "error_count", Value: hardWareData[i].ErrorCount},
+	// 			bson.E{Key: "battery_status", Value: hardWareData[i].BatteryStatus},
+	// 			bson.E{Key: "is_third_fill", Value: true},
+	// 			bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+	// 			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+	// 			bson.E{Key: "local_d", Value: localDate},
+	// 			bson.E{Key: "local_t", Value: localTime},
+	// 			bson.E{Key: "iso_timestamp", Value: isoDateTime},
+	// 		}},
+	// 	}
+	// 	option.SetUpdate(&update)
+	// 	option.SetUpsert(true)
+	// 	operations = append(operations, option)
+	// 	option2 := option
+	// 	option2.SetUpsert(false)
+	// 	operations2 = append(operations2, option2)
+
+	// 	res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
+	// 	fmt.Println(res.InsertedID, err)
+
+	// }
+
+	// bulkOption := options.BulkWriteOptions{}
+	// bulkOption.SetOrdered(true)
+
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// defer cancel()
+
+	// go func(data []mongo.WriteModel) {
+	// 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 	// defer cancel()
+	// 	_, _ = socDataCollection.BulkWrite(context.TODO(), data)
+
+	// }(operations2)
+	// res1, err1 := socDataCollection.BulkWrite(context.TODO(), operations2)
+
+	// res2, err2 := rawDataCollection.BulkWrite(context.TODO(), operations)
+	// fmt.Println(res1, res2)
+	// fmt.Println(err1, err2)
+	return nil
+}
+
+func (db *vehiclerepository) CreateBatteryTemperatureHistory(batteryTemperatureData []models.BatteryTemperatureAlert) error {
+	dataToDelete := []string{}
+
+	for i := range batteryTemperatureData {
+		currentTime := primitive.NewDateTimeFromTime(time.Now())
+		temp := models.BatteryTemperatureAlertHistory{}
+		temp.AlertCount = batteryTemperatureData[i].TotalAttempt
+		temp.BMSID = batteryTemperatureData[i].BMSID
+		temp.BatteryTemperature = batteryTemperatureData[i].Temperature
+		temp.HistoryTimestamp = currentTime
+		temp.CreateAt = currentTime
+		temp.UpdateAt = currentTime
+		temp.AlertType = "battery_temperature"
+
+		dataToDelete = append(dataToDelete, batteryTemperatureData[i].BMSID)
+
+		ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+		defer cancel()
+
+		_, _ = db.vehicleAlertHistoryConnection.InsertOne(ctx, temp)
+	}
+
+	err := db.DeleteBatteryTemperatureAlert(dataToDelete)
+
+	return err
+
+}
+
+func (db *vehiclerepository) GetBatteryTemperatureData() ([]models.BatteryTemperatureAlert, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+
+	filter := []bson.M{
+		{"$match": bson.M{
+			"created_at": bson.M{
+				"$lte": primitive.NewDateTimeFromTime(time.Now()),
+			},
+		},
+		},
+	}
+
+	cursor, curErr := db.batteryTemperatureConnection.Aggregate(ctx, filter)
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	batteryData := []models.BatteryTemperatureAlert{}
+
+	if err := cursor.All(context.TODO(), &batteryData); err != nil {
+		return nil, err
+	}
+
+	return batteryData, nil
+
+}
+
+func ConnectToMDB() *mongo.Client {
+	// if Mclient == nil {
+	// 	var err error
+	// 	clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
+	// 	Mclient, err = mongo.Connect(context.Background(), clientOptions)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+
+	// 	// check the connection
+	// 	err = Mclient.Ping(context.Background(), nil)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
+
+	var err error
+	//TODO add to your .env.yml or .config.yml MONGODB_URI: mongodb://localhost:27017
+	clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
+	Mclient, err = mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// check the connection
+	err = Mclient.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO optional you can log your connected MongoDB client
+	fmt.Println("Client DB Connection established...", time.Now())
+	return Mclient
+}
+
+func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.BatteryHardwareMain) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+
+	var operations []mongo.WriteModel
+
+	for i := range batteryData {
+		optionsA := mongo.NewUpdateOneModel()
+		optionsA.SetFilter(bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i].BmsID},
+		})
+
+		locationData := new(models.LocationData)
+		locationData.Latitude = batteryData[i].LocationLatitude
+		locationData.Longitude = batteryData[i].LocationLongitude
+
+		update := bson.D{
+			bson.E{Key: "$push", Value: bson.D{
+				bson.E{Key: "location", Value: locationData},
+			}},
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+			}},
+		}
+
+		optionsA.SetUpdate(update)
+		optionsA.SetUpsert(true)
+		operations = append(operations, optionsA)
 	}
 
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	go func(data []mongo.WriteModel) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_, _ = socDataCollection.BulkWrite(ctx, data)
-
-	}(operations)
-
-	_, err := rawDataCollection.BulkWrite(ctx, operations)
-	fmt.Println("bulk")
+	_, err := db.batteryDistanceTravelledConnection.BulkWrite(ctx, operations)
+	
 	return err
-}
 
-func ConnectToMDB() {
-	if Mclient == nil {
-		var err error
-		clientOptions := options.Client().ApplyURI(dbconfig.MongoURI())
-		Mclient, err = mongo.Connect(context.Background(), clientOptions)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// check the connection
-		err = Mclient.Ping(context.Background(), nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 }

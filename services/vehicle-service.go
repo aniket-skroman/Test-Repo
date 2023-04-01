@@ -1,6 +1,7 @@
 package services
 
 import (
+	
 	"reflect"
 	"strconv"
 	"sync"
@@ -27,6 +28,7 @@ type VehicleServices interface {
 	UpdateVehicleFallAlert(vehicleAlert models.VehicleFallAlerts) error
 	CreateVehicleAlertHistory() error
 	CreateDistanceTravelHistory() error
+	CreateBatteryTemperatureHistory() error
 
 	BatteryTempToMain() error
 
@@ -118,7 +120,6 @@ func (s *vehicleservice) TrackVehicleAlert(vehicleData []models.VehiclesData) er
 
 	verErr := s.VerifyVehicleForAlert(vehicleData)
 	return verErr
-
 }
 
 func (s *vehicleservice) VerifyVehicleForAlert(vehicleData []models.VehiclesData) error {
@@ -222,6 +223,21 @@ func (s *vehicleservice) CreateDistanceTravelHistory() error {
 
 func (s *vehicleservice) BatteryTempToMain() error {
 	return s.vehicleRepository.BatteryTempToMain()
+}
+
+func (s *vehicleservice) CreateBatteryTemperatureHistory() error {
+	res, err := s.vehicleRepository.GetBatteryTemperatureData()
+	if err != nil {
+		return err
+	}
+
+	
+
+	if err := s.vehicleRepository.CreateBatteryTemperatureHistory(res); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *vehicleservice) AddTestData() error {
