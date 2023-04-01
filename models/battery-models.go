@@ -42,7 +42,7 @@ type BatteryHardwareMain struct {
 	BatteryRatedCapacity      int                `json:"battery_rated_capacity" bson:"battery_rated_capacity"`
 	BatteryRatedVoltage       int                `json:"battery_rated_voltage" bson:"battery_rated_voltage"`
 	BatteryVersion            string             `json:"battery_version" bson:"battery_version"`
-	BatteryManufactureDate    string             `json:"battery_manufacture_date" bson:"battery_manufacture_date"`
+	BatteryManufactureDate    int                `json:"battery_manufacture_date" bson:"battery_manufacture_date"`
 	BatteryManufactureName    string             `json:"battery_manufacture_name" bson:"battery_manufacture_name"`
 	BatteryName               string             `json:"battery_name" bson:"battery_name"`
 	BatteryChemID             string             `json:"battery_chem_id" bson:"battery_chem_id"`

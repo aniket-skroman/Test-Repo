@@ -167,8 +167,8 @@ func (db *vehiclerepository) UpdateVehicleData(vehicle models.VehiclesData) erro
 		currentLatitude := helper.ConvertStrToFloat(vehicle.Latitude)
 		currentLongitude := helper.ConvertStrToFloat(vehicle.Longitude)
 
-		pointA := helper.Coordinates{Latitude:prevLatitude, Longitude: prevLongitude}
-		pointB := helper.Coordinates{Latitude:currentLatitude,Longitude:  currentLongitude}
+		pointA := helper.Coordinates{Latitude: prevLatitude, Longitude: prevLongitude}
+		pointB := helper.Coordinates{Latitude: currentLatitude, Longitude: currentLongitude}
 		distance := pointA.Distance(pointB)
 
 		vehicle.DistanceTraveled = result.DistanceTraveled + distance
@@ -525,9 +525,11 @@ func (db *vehiclerepository) CreateDistanceTravelHistory(vehicleData []models.Ve
 }
 
 func (db *vehiclerepository) BatteryTempToMain() error {
+	fmt.Println("battery temp to main run from repo..")
 	filter := bson.D{
 		bson.E{Key: "is_first_fill", Value: true},
 		bson.E{Key: "is_second_fill", Value: true},
+		bson.E{Key: "is_third_fill", Value: true},
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -545,6 +547,8 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		return err
 	}
 
+	fmt.Println("Data fetched from query : ", len(batteryData))
+
 	dataToDelete := []string{}
 
 	for i := range batteryData {
@@ -560,16 +564,14 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 }
 
 func (db *vehiclerepository) DeleteBatteryTempData(batteryData []string) error {
+	fmt.Println("Delete battery temp data run successfully... with data :  ", len(batteryData))
 	filter := bson.D{
 		bson.E{Key: "bms_id", Value: bson.D{
 			bson.E{Key: "$in", Value: batteryData},
 		}},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	res, err := db.batteryTempConnection.DeleteMany(ctx, filter)
+	res, err := db.batteryTempConnection.DeleteMany(context.TODO(), filter)
 	fmt.Println("Result data from delete : ", res.DeletedCount)
 	return err
 }
@@ -589,7 +591,7 @@ func (db *vehiclerepository) DeleteBatteryTemperatureAlert(batteryTempAlert []st
 }
 
 func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwareMain) error {
-
+	fmt.Println("Add battery run success..... with data : ", len(batteryData))
 	var operations []mongo.WriteModel
 
 	for i := range batteryData {
@@ -603,20 +605,19 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 		localTime := LocalTimeStamp[1]
 
 		batterySpeed := batteryData[i].LocationSpeed
-		var batteryStatus, chargingStatus string 
-		
+		var batteryStatus, chargingStatus string
+
 		if batterySpeed > 0 {
 			batteryStatus = "moving"
-		}else{
+		} else {
 			batteryStatus = "idle"
 		}
 
 		if batteryData[i].BatteryCurrent >= 0 {
 			chargingStatus = "discharge"
-		}else{
+		} else {
 			chargingStatus = "charge"
 		}
-		
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
@@ -659,7 +660,7 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 				bson.E{Key: "cell_voltage_list_1", Value: batteryData[i].CellVoltageList1},
 				bson.E{Key: "history", Value: batteryData[i].History},
 				bson.E{Key: "error_count", Value: batteryData[i].ErrorCount},
-				bson.E{Key: "battery_status", Value: batteryStatus},
+				bson.E{Key: "status", Value: batteryStatus},
 				bson.E{Key: "battery_charge_status", Value: chargingStatus},
 				bson.E{Key: "is_third_fill", Value: true},
 				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
@@ -680,8 +681,8 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := db.batteryMainConnection.BulkWrite(ctx, operations)
-
+	res, err := db.batteryMainConnection.BulkWrite(ctx, operations)
+	fmt.Println("Add battery result : ", res)
 	return err
 }
 
@@ -797,7 +798,7 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 				bson.E{Key: "cell_voltage_list_1", Value: hardWareData[i].CellVoltageList1},
 				bson.E{Key: "history", Value: hardWareData[i].History},
 				bson.E{Key: "error_count", Value: hardWareData[i].ErrorCount},
-				bson.E{Key: "battery_status", Value: hardWareData[i].BatteryStatus},
+				bson.E{Key: "status", Value: hardWareData[i].BatteryStatus},
 				bson.E{Key: "is_third_fill", Value: true},
 				bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 				bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
@@ -1002,9 +1003,9 @@ func ConnectToMDB() *mongo.Client {
 }
 
 func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.BatteryHardwareMain) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
-	defer cancel()
-
+	// ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	// defer cancel()
+	fmt.Println("Update BMS Distance Travlled RUN SUCCESSFUULY ..... WITH DATA : ", len(batteryData))
 	var operations []mongo.WriteModel
 
 	for i := range batteryData {
@@ -1034,8 +1035,8 @@ func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.Bat
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
 
-	_, err := db.batteryDistanceTravelledConnection.BulkWrite(ctx, operations)
-	
+	res, err := db.batteryDistanceTravelledConnection.BulkWrite(context.TODO(), operations)
+	fmt.Println("Update BMS Distance Travlled result : ", res)
 	return err
 
 }

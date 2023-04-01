@@ -280,7 +280,7 @@ func RunCronJob() {
 			log.Println("Create Battery Temperature History  run successfully....", time.Now())
 		}
 	})
-	scheduler.Every(1).Minute().Do(func() {
+	scheduler.Every(5).Minute().Do(func() {
 		err := batteryService.UpdateBatteryStatus()
 		if err != nil {
 			log.Println("Error from update battery status => ", err)

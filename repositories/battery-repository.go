@@ -69,13 +69,6 @@ func (db *batteryRepository) GetOfflineBattery() ([]models.BatteryHardwareMain, 
 	if err := cursor.All(context.TODO(), &batteryData); err != nil {
 		return nil, err
 	}
-
-	for i := range batteryData {
-		fmt.Println("BmsID : ", batteryData[i].BmsID)
-	}
-
-	fmt.Println("Length of BmsID : ", len(batteryData))
-
 	return batteryData, nil
 }
 
