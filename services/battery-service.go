@@ -23,8 +23,8 @@ func NewBatteryService(repo repositories.BatteryRepository) BatteryService {
 }
 func (ser *batteryService) UpdateBatteryStatus() error {
 	_, offlineCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	_, idleCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	_, moveCancel := context.WithTimeout(context.Background(), 10*time.Second)
+//	_, idleCancel := context.WithTimeout(context.Background(), 10*time.Second)
+//	_, moveCancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	
 	go func(cancel context.CancelFunc) {
@@ -37,21 +37,21 @@ func (ser *batteryService) UpdateBatteryStatus() error {
 
 	}(offlineCancel)
 
-	go func(cancel context.CancelFunc) {
+//	go func(cancel context.CancelFunc) {
 		
-		defer idleCancel()
-		batteryData, _ := ser.batteryRepo.GetIdleBattery()
+//		defer idleCancel()
+//		batteryData, _ := ser.batteryRepo.GetIdleBattery()
 
-		_ = ser.batteryRepo.UpdateBatteryIdleStatus(batteryData)
+//		_ = ser.batteryRepo.UpdateBatteryIdleStatus(batteryData)
 
-	}(idleCancel)
+//	}(idleCancel)
 
-	go func(cancel context.CancelFunc) {
-		defer cancel()
-		batteryData, _ := ser.batteryRepo.GetMoveBattery()
-		_ = ser.batteryRepo.UpdateBatteryMoveStatus(batteryData)
+//	go func(cancel context.CancelFunc) {
+//		defer cancel()
+//		batteryData, _ := ser.batteryRepo.GetMoveBattery()
+//		_ = ser.batteryRepo.UpdateBatteryMoveStatus(batteryData)
 
-	}(moveCancel)
+//	}(moveCancel)
 
 	return nil
 }

@@ -41,17 +41,15 @@ func (db *batteryRepository) Init() (context.Context, context.CancelFunc) {
 }
 
 func (db *batteryRepository) GetOfflineBattery() ([]models.BatteryHardwareMain, error) {
-	currentTime := primitive.NewDateTimeFromTime(time.Now())
-	last30Min := currentTime.Time().Add(-30 * time.Minute)
+	currentTime := time.Now()
+	last30Min := currentTime.Add(-30 * time.Minute)
+	fmt.Println("Current time : ", currentTime, " last 30 min : ", last30Min)
 
 	filter := []bson.M{
 		{
 			"$match": bson.M{
 				"updated_at": bson.M{
-					"$lte": last30Min,
-				},
-				"battery_status": bson.M{
-					"$ne": "offline",
+					"$lte": primitive.NewDateTimeFromTime(last30Min),
 				},
 			},
 		},
@@ -71,6 +69,12 @@ func (db *batteryRepository) GetOfflineBattery() ([]models.BatteryHardwareMain, 
 	if err := cursor.All(context.TODO(), &batteryData); err != nil {
 		return nil, err
 	}
+
+	for i := range batteryData {
+		fmt.Println("BmsID : ", batteryData[i].BmsID)
+	}
+
+	fmt.Println("Length of BmsID : ", len(batteryData))
 
 	return batteryData, nil
 }
@@ -101,8 +105,8 @@ func (db *batteryRepository) UpdateBatteryOfflineStatus(batteryData []models.Bat
 		ctx, cancel := db.Init()
 		defer cancel()
 
-		res, err := db.batteryMainConnection.BulkWrite(ctx, operation)
-		fmt.Println("Offline update result : ", res)
+		_, err := db.batteryMainConnection.BulkWrite(ctx, operation)
+		//fmt.Println("Offline update result : ", res)
 		return err
 	}
 	return nil
@@ -116,14 +120,9 @@ func (db *batteryRepository) GetIdleBattery() ([]models.BatteryHardwareMain, err
 		{
 			"$match": bson.M{
 				"updated_at": bson.M{
-					"$lte": last30Min,
+					"$gte": last30Min,
 				},
-				"battery_status": bson.M{
-					"$ne": "idle",
-				},
-				"location_speed": bson.M{
-					"$lte": 0,
-				},
+				"location_speed": 0,
 			},
 		},
 	}
@@ -142,6 +141,8 @@ func (db *batteryRepository) GetIdleBattery() ([]models.BatteryHardwareMain, err
 	if err := cursor.All(context.TODO(), &batteryData); err != nil {
 		return nil, err
 	}
+
+	//fmt.Println("Battery Data : ", batteryData)
 
 	return batteryData, nil
 }
@@ -188,7 +189,7 @@ func (db *batteryRepository) GetMoveBattery() ([]models.BatteryHardwareMain, err
 				"location_speed": bson.M{
 					"$gt": 0,
 				},
-				"battery_status":"idle",
+				"battery_status": "idle",
 			},
 		},
 	}

@@ -35,7 +35,7 @@ type BatteryHardwareMain struct {
 	BatteryVoltage            int                `json:"battery_voltage" bson:"battery_voltage"`
 	BatteryCurrent            int                `json:"battery_current" bson:"battery_current"`
 	BatterySoc                int                `json:"battery_soc" bson:"battery_soc"`
-	BatteryTemperature        string             `json:"battery_temperature" bson:"battery_temperature"`
+	BatteryTemperature        interface{}        `json:"battery_temperature" bson:"battery_temperature"`
 	BatteryRemainingCapacity  int                `json:"battery_remaining_capacity" bson:"battery_remaining_capacity"`
 	BatteryFullChargeCapacity int                `json:"battery_full_charge_capacity" bson:"battery_full_charge_capacity"`
 	BatteryCycleCount         int                `json:"battery_cycle_count" bson:"battery_cycle_count"`
@@ -47,11 +47,11 @@ type BatteryHardwareMain struct {
 	BatteryName               string             `json:"battery_name" bson:"battery_name"`
 	BatteryChemID             string             `json:"battery_chem_id" bson:"battery_chem_id"`
 	BmsBarCode                string             `json:"bms_bar_code" bson:"bms_bar_code"`
-	CellVoltageList0          string             `json:"cell_voltage_list_0" bson:"cell_voltage_list_0"`
-	CellVoltageList1          string             `json:"cell_voltage_list_1" bson:"cell_voltage_list_1"`
-	History                   string             `json:"history" bson:"history"`
-	ErrorCount                string             `json:"error_count" bson:"error_count"`
-	BatteryStatus             string             `json:"battery_status" bson:"battery_status"`
+	CellVoltageList0          interface{}        `json:"cell_voltage_list_0" bson:"cell_voltage_list_0"`
+	CellVoltageList1          interface{}        `json:"cell_voltage_list_1" bson:"cell_voltage_list_1"`
+	History                   interface{}        `json:"history" bson:"history"`
+	ErrorCount                interface{}        `json:"error_count" bson:"error_count"`
+	BatteryStatus             interface{}        `json:"battery_status" bson:"status"`
 	IsFirstFill               bool               `json:"is_first_fill" bson:"is_first_fill"`
 	IsSecondFill              bool               `json:"is_second_fill" bson:"is_second_fill"`
 	IsThirdFill               bool               `json:"is_third_fill" bson:"is_third_fill"`
