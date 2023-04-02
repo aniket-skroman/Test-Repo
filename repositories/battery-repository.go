@@ -43,7 +43,6 @@ func (db *batteryRepository) Init() (context.Context, context.CancelFunc) {
 func (db *batteryRepository) GetOfflineBattery() ([]models.BatteryHardwareMain, error) {
 	currentTime := time.Now()
 	last30Min := currentTime.Add(-30 * time.Minute)
-	fmt.Println("Current time : ", currentTime, " last 30 min : ", last30Min)
 
 	filter := []bson.M{
 		{

@@ -51,7 +51,8 @@ type BatteryHardwareMain struct {
 	CellVoltageList1          interface{}        `json:"cell_voltage_list_1" bson:"cell_voltage_list_1"`
 	History                   interface{}        `json:"history" bson:"history"`
 	ErrorCount                interface{}        `json:"error_count" bson:"error_count"`
-	BatteryStatus             interface{}        `json:"battery_status" bson:"status"`
+	Status                    interface{}        `json:"status" bson:"status"`
+	BatteryStatus             string             `json:"battery_status" bson:"battery_status"`
 	IsFirstFill               bool               `json:"is_first_fill" bson:"is_first_fill"`
 	IsSecondFill              bool               `json:"is_second_fill" bson:"is_second_fill"`
 	IsThirdFill               bool               `json:"is_third_fill" bson:"is_third_fill"`
