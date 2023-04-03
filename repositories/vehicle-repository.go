@@ -547,7 +547,7 @@ func (db *vehiclerepository) BatteryTempToMain() error {
 		return err
 	}
 
-	fmt.Println("Data fetched from query : ", len(batteryData))
+	
 
 	dataToDelete := []string{}
 
@@ -608,15 +608,15 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 		var batteryStatus, chargingStatus string
 
 		if batterySpeed > 0 {
-			batteryStatus = "moving"
+			batteryStatus = "Moving"
 		} else {
-			batteryStatus = "idle"
+			batteryStatus = "Idle"
 		}
 
 		if batteryData[i].BatteryCurrent >= 0 {
-			chargingStatus = "discharge"
+			chargingStatus = "Discharge"
 		} else {
-			chargingStatus = "charge"
+			chargingStatus = "Charge"
 		}
 
 		update := bson.D{

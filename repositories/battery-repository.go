@@ -82,7 +82,7 @@ func (db *batteryRepository) UpdateBatteryOfflineStatus(batteryData []models.Bat
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
-				bson.E{Key: "battery_status", Value: "offline"},
+				bson.E{Key: "battery_status", Value: "Offline"},
 			}},
 		}
 
@@ -153,7 +153,7 @@ func (db *batteryRepository) UpdateBatteryIdleStatus(batteryData []models.Batter
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
-				bson.E{Key: "battery_status", Value: "idle"},
+				bson.E{Key: "battery_status", Value: "Idle"},
 			}},
 		}
 		optionA.SetUpdate(update)
@@ -215,7 +215,7 @@ func (db *batteryRepository) UpdateBatteryMoveStatus(batteryData []models.Batter
 
 			update := bson.D{
 				bson.E{Key: "$set", Value: bson.D{
-					bson.E{Key: "battery_status", Value: "moving"},
+					bson.E{Key: "battery_status", Value: "Moving"},
 				}},
 			}
 
