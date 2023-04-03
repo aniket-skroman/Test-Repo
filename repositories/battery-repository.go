@@ -43,7 +43,6 @@ func (db *batteryRepository) Init() (context.Context, context.CancelFunc) {
 func (db *batteryRepository) GetOfflineBattery() ([]models.BatteryHardwareMain, error) {
 	currentTime := time.Now()
 	last30Min := currentTime.Add(-30 * time.Minute)
-	fmt.Println("Current time : ", currentTime, " last 30 min : ", last30Min)
 
 	filter := []bson.M{
 		{
@@ -69,13 +68,6 @@ func (db *batteryRepository) GetOfflineBattery() ([]models.BatteryHardwareMain, 
 	if err := cursor.All(context.TODO(), &batteryData); err != nil {
 		return nil, err
 	}
-
-	for i := range batteryData {
-		fmt.Println("BmsID : ", batteryData[i].BmsID)
-	}
-
-	fmt.Println("Length of BmsID : ", len(batteryData))
-
 	return batteryData, nil
 }
 
@@ -90,7 +82,7 @@ func (db *batteryRepository) UpdateBatteryOfflineStatus(batteryData []models.Bat
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
-				bson.E{Key: "battery_status", Value: "offline"},
+				bson.E{Key: "battery_status", Value: "Offline"},
 			}},
 		}
 
@@ -161,7 +153,7 @@ func (db *batteryRepository) UpdateBatteryIdleStatus(batteryData []models.Batter
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
-				bson.E{Key: "battery_status", Value: "idle"},
+				bson.E{Key: "battery_status", Value: "Idle"},
 			}},
 		}
 		optionA.SetUpdate(update)
@@ -223,7 +215,7 @@ func (db *batteryRepository) UpdateBatteryMoveStatus(batteryData []models.Batter
 
 			update := bson.D{
 				bson.E{Key: "$set", Value: bson.D{
-					bson.E{Key: "battery_status", Value: "moving"},
+					bson.E{Key: "battery_status", Value: "Moving"},
 				}},
 			}
 
