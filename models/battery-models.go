@@ -78,3 +78,12 @@ type BatteryDistanceTravelled struct {
 	Location  []LocationData     `json:"location" bson:"location"`
 	CreatedAt primitive.DateTime `json:"created_at" bson:"created_at"`
 }
+
+type UpdateBatteryDistanceTravelled struct {
+	BMSID string
+	DistanceTravelled float64
+}
+
+
+
+
