@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+
 	"fmt"
 
 	"time"
@@ -23,15 +24,24 @@ type BatteryRepository interface {
 	UpdateBatteryOfflineStatus([]models.BatteryHardwareMain) error
 	UpdateBatteryIdleStatus([]models.BatteryHardwareMain) error
 	UpdateBatteryMoveStatus([]models.BatteryHardwareMain) error
+
+	// battery distance calculater or ODO meter
+	GetBatteryDistanceTravelled() ([]models.BatteryDistanceTravelled, error)
+	UpdateBatteryDistanceTravelled([]models.UpdateBatteryDistanceTravelled) error
+	DeleteTodayDistanceTravelled() error
 }
 
 type batteryRepository struct {
-	batteryMainConnection *mongo.Collection
+	batteryMainConnection              *mongo.Collection
+	batteryReportingConnection         *mongo.Collection
+	batteryDistanceTravelledConnection *mongo.Collection
 }
 
 func NewBatteryRepository() BatteryRepository {
 	return &batteryRepository{
-		batteryMainConnection: batteryMainCollection,
+		batteryMainConnection:              batteryMainCollection,
+		batteryReportingConnection:         batteryReportingCollection,
+		batteryDistanceTravelledConnection: batteryDistanceTravelledCollection,
 	}
 }
 
@@ -234,4 +244,64 @@ func (db *batteryRepository) UpdateBatteryMoveStatus(batteryData []models.Batter
 		return err
 	}
 	return nil
+}
+
+func (db *batteryRepository) GetBatteryDistanceTravelled() ([]models.BatteryDistanceTravelled, error) {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	cursor, curErr := db.batteryDistanceTravelledConnection.Find(ctx, bson.M{})
+
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	var batteryData []models.BatteryDistanceTravelled
+
+	if err := cursor.All(context.TODO(), &batteryData); err != nil {
+		return nil, err
+	}
+
+	return batteryData, nil
+}
+
+func (db *batteryRepository) UpdateBatteryDistanceTravelled(batteryData []models.UpdateBatteryDistanceTravelled) error {
+	operation := []mongo.WriteModel{}
+
+	for i := range batteryData {
+		optionsA := mongo.NewUpdateOneModel()
+		optionsA.SetFilter(bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i].BMSID},
+		})
+
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "odo_meter", Value: batteryData[i].DistanceTravelled},
+			}},
+		}
+
+		optionsA.SetUpdate(update)
+		operation = append(operation, optionsA)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.batteryMainConnection.BulkWrite(ctx, operation)
+	_, reportingErr := db.batteryReportingConnection.BulkWrite(ctx, operation)
+	if reportingErr != nil {
+		return reportingErr
+	}
+	return err
+}
+
+func (db *batteryRepository) DeleteTodayDistanceTravelled() error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.batteryDistanceTravelledConnection.DeleteMany(ctx, bson.M{})
+	return err
 }

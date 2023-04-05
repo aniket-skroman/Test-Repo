@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -63,3 +64,24 @@ func (origin Coordinates) Distance(destination Coordinates) float64 {
 
 	return d
 }
+
+func FormatLatLng(latitude int, longitude int) (string, string) {
+	lat := fmt.Sprintf("%v", float64(latitude)/float64(1000000))
+	long := fmt.Sprintf("%v", float64(longitude)/float64(1000000))
+	return lat, long
+}
+
+func FormatSpeedAngle(dataToFormat string) string {
+	dataToFormat1, _ := strconv.Atoi(dataToFormat)
+	data := fmt.Sprintf("%v", dataToFormat1/100)
+	return data
+}
+
+func FormatLatLngForFloat(latitude, longitude int) (float64, float64) {
+	lat := float64(latitude)/float64(1000000)
+	long := float64(longitude)/float64(1000000)
+	return lat, long
+}
+
+
+

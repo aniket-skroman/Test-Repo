@@ -3,7 +3,9 @@ package main
 // 1
 import (
 	"context"
+	
 	"encoding/json"
+	
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -237,6 +239,7 @@ func RunCronJob() {
 	scheduler.Every(1).Minute().Do(func() {
 		fmt.Println("cron run ...battery to main : ", time.Now())
 		err := vehicleService.BatteryTempToMain()
+		fmt.Println(err)
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -278,6 +281,14 @@ func RunCronJob() {
 			log.Println("err from create distance travel history => ", err)
 		} else {
 			log.Println("Create Battery Temperature History  run successfully....", time.Now())
+		}
+	})
+	scheduler.Every(24).Hour().Do(func() {
+		err := batteryService.UpdateBatteryDistanceTravelled()
+		if err != nil {
+			log.Println("Error to update battery DistanceTraveled : ", err)
+		}else{
+			log.Println("Update battery distance Travlled run successfully : ", time.Now())
 		}
 	})
 	scheduler.Every(5).Minute().Do(func() {
