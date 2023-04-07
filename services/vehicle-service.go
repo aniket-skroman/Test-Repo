@@ -1,7 +1,6 @@
 package services
 
 import (
-	
 	"reflect"
 	"strconv"
 	"sync"
@@ -31,6 +30,7 @@ type VehicleServices interface {
 	CreateBatteryTemperatureHistory() error
 
 	BatteryTempToMain() error
+	CheckForBatteryCycle() error
 
 	AddTestData() error
 }
@@ -231,8 +231,6 @@ func (s *vehicleservice) CreateBatteryTemperatureHistory() error {
 		return err
 	}
 
-	
-
 	if err := s.vehicleRepository.CreateBatteryTemperatureHistory(res); err != nil {
 		return err
 	}
@@ -242,4 +240,13 @@ func (s *vehicleservice) CreateBatteryTemperatureHistory() error {
 
 func (s *vehicleservice) AddTestData() error {
 	return s.vehicleRepository.AddTestData()
+}
+
+func (s *vehicleservice) CheckForBatteryCycle() error {
+	batteryData, err := s.vehicleRepository.CheckForBatteryCycle()
+	if err != nil {
+		return err
+	}
+
+	return s.vehicleRepository.UpdateBatteryCycle(batteryData)
 }

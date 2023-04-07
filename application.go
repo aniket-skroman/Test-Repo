@@ -3,9 +3,9 @@ package main
 // 1
 import (
 	"context"
-	
+
 	"encoding/json"
-	
+
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -287,7 +287,7 @@ func RunCronJob() {
 		err := batteryService.UpdateBatteryDistanceTravelled()
 		if err != nil {
 			log.Println("Error to update battery DistanceTraveled : ", err)
-		}else{
+		} else {
 			log.Println("Update battery distance Travlled run successfully : ", time.Now())
 		}
 	})
@@ -298,6 +298,11 @@ func RunCronJob() {
 		} else {
 			log.Println("Update battery status run successfully.....", time.Now())
 		}
+	})
+
+	scheduler.Every(5).Minute().Do(func() {
+		err := vehicleService.CheckForBatteryCycle()
+		fmt.Println("Error from battery chycel :", err)
 	})
 
 	scheduler.StartBlocking()
