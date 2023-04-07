@@ -61,6 +61,9 @@ type BatteryHardwareMain struct {
 	LocalDate                 string             `json:"local_date" bson:"local_d"`
 	LocalTime                 string             `json:"local_time" bson:"local_t"`
 	ISOTimeStamp              string             `json:"iso_timestamp" bson:"iso_timestamp"`
+	OldCycleCount             int                `json:"old_cycle_count" bson:"old_cycle_count"`
+	MinMaxSoc                 []int              `json:"min_max_soc" bson:"min_max_soc"`
+	SpeedCal                  []int              `json:"speed_cal" bson:"speed_cal"`
 }
 
 type BMSIdList struct {
@@ -80,10 +83,24 @@ type BatteryDistanceTravelled struct {
 }
 
 type UpdateBatteryDistanceTravelled struct {
-	BMSID string
+	BMSID             string
 	DistanceTravelled float64
 }
 
-
-
-
+type CreateCycleBasedReport struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	BMSID       string             `json:"bms_id" bson:"bms_id"`
+	Asset       string             `json:"asset" bson:"asset"`
+	CycleNo     int                `json:"cycle_no" bson:"cycle_no"`
+	StartTime   primitive.DateTime `json:"start_time" bson:"end_time"`
+	EndTime     primitive.DateTime `json:"end_time" bson:"end_time"`
+	KMTravelled float64            `json:"km_travelled" bson:"km_travelled"`
+	MinSoc      int                `json:"min_soc" bson:"min_soc"`
+	MaxSoc      int                `json:"max_soc" bson:"max_soc"`
+	AvgSpeed    int                `json:"avg_speed" bson:"avg_speed"`
+	TopSpeed    int                `json:"top_speed" bson:"top_speed"`
+	LowestSpeed int                `json:"lowest_speed" bson:"lowest_speed"`
+	IsStart     bool               `json:"is_start" bson:"is_start"`
+	IsEnd       bool               `json:"is_end" bson:"is_end"`
+	CreatedAt   primitive.DateTime `json:"created_at" bson:"created_at"`
+}
