@@ -104,3 +104,10 @@ type CreateCycleBasedReport struct {
 	IsEnd       bool               `json:"is_end" bson:"is_end"`
 	CreatedAt   primitive.DateTime `json:"created_at" bson:"created_at"`
 }
+
+type LastSevenHourUnreported struct {
+	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Time            string             `json:"time" bson:"time"`
+	UnreportedCount int64              `json:"unreported_count" bson:"unreported_count"`
+	CreatedAt       primitive.DateTime `json:"created_at" bson:"created_at"`
+}
