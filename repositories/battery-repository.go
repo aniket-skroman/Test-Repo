@@ -395,8 +395,8 @@ func (db *batteryRepository) GetLast7hoursUnreportedData() (map[string]int64, er
 			mp[hourFormat] = data
 		} else {
 			toint := ref - 1
-			from := currentTime.Add(time.Duration(-ref) * time.Hour.Abs())
-			to := currentTime.Add(time.Duration(-toint) * time.Hour.Abs())
+			from := currentTime.Add(time.Duration(-ref) * time.Hour)
+			to := currentTime.Add(time.Duration(-toint) * time.Hour)
 			data, _ := QueryHelper(from, to, rawDataCollection)
 			hourFormat := to.Format("15:04:05")
 			mp[hourFormat] = data
