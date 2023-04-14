@@ -236,73 +236,82 @@ func RunCronJob() {
 	f := LoggerFile("")
 	log.SetOutput(f)
 
+	// scheduler.Every(1).Minute().Do(func() {
+	// 	fmt.Println("cron run ...battery to main : ", time.Now())
+	// 	err := vehicleService.BatteryTempToMain()
+	// 	fmt.Println(err)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	} else {
+	// 		log.Println("Battery temp to main run ....")
+	// 	}
+	// })
+	// scheduler.Every(1).Hour().Do(func() {
+
+	// 	err := vehicleService.RefreshVehicleData()
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	} else {
+	// 		log.Println("Refresh vehicle data cron run...", time.Now())
+	// 	}
+	// })
+
+	// scheduler.Every(24).Hour().Do(func() {
+	// 	err := vehicleService.CreateVehicleAlertHistory()
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	} else {
+	// 		log.Println("Vehicle Alert History cron run successfully...", time.Now())
+	// 	}
+	// })
+
+	// scheduler.Every(24).Hour().Do(func() {
+	// 	err := vehicleService.CreateDistanceTravelHistory()
+
+	// 	if err != nil {
+	// 		log.Println("err from create distance travel history => ", err)
+	// 	} else {
+	// 		log.Println("Create Distance Travel History  run successfully....", time.Now())
+	// 	}
+	// })
+
+	// scheduler.Every(24).Hour().Do(func() {
+	// 	err := vehicleService.CreateBatteryTemperatureHistory()
+	// 	if err != nil {
+	// 		log.Println("err from create distance travel history => ", err)
+	// 	} else {
+	// 		log.Println("Create Battery Temperature History  run successfully....", time.Now())
+	// 	}
+	// })
+	// scheduler.Every(24).Hour().Do(func() {
+	// 	err := batteryService.UpdateBatteryDistanceTravelled()
+	// 	if err != nil {
+	// 		log.Println("Error to update battery DistanceTraveled : ", err)
+	// 	} else {
+	// 		log.Println("Update battery distance Travlled run successfully : ", time.Now())
+	// 	}
+	// })
+	// scheduler.Every(5).Minute().Do(func() {
+	// 	err := batteryService.UpdateBatteryStatus()
+	// 	if err != nil {
+	// 		log.Println("Error from update battery status => ", err)
+	// 	} else {
+	// 		log.Println("Update battery status run successfully.....", time.Now())
+	// 	}
+	// })
+
+	// scheduler.Every(5).Minute().Do(func() {
+	// 	err := vehicleService.CheckForBatteryCycle()
+	// 	fmt.Println("Error from battery chycel :", err)
+	// })
+
 	scheduler.Every(1).Minute().Do(func() {
-		fmt.Println("cron run ...battery to main : ", time.Now())
-		err := vehicleService.BatteryTempToMain()
-		fmt.Println(err)
+		err := batteryService.UpdateLastSevenHourUnReported()
 		if err != nil {
-			log.Println(err)
+			log.Println("Error from update last seven hour unreported => ", err)
 		} else {
-			log.Println("Battery temp to main run ....")
+			log.Println("Update last seven hour unreported successfully.....", time.Now())
 		}
-	})
-	scheduler.Every(1).Hour().Do(func() {
-
-		err := vehicleService.RefreshVehicleData()
-		if err != nil {
-			log.Println(err)
-		} else {
-			log.Println("Refresh vehicle data cron run...", time.Now())
-		}
-	})
-
-	scheduler.Every(24).Hour().Do(func() {
-		err := vehicleService.CreateVehicleAlertHistory()
-		if err != nil {
-			log.Println(err)
-		} else {
-			log.Println("Vehicle Alert History cron run successfully...", time.Now())
-		}
-	})
-
-	scheduler.Every(24).Hour().Do(func() {
-		err := vehicleService.CreateDistanceTravelHistory()
-
-		if err != nil {
-			log.Println("err from create distance travel history => ", err)
-		} else {
-			log.Println("Create Distance Travel History  run successfully....", time.Now())
-		}
-	})
-
-	scheduler.Every(24).Hour().Do(func() {
-		err := vehicleService.CreateBatteryTemperatureHistory()
-		if err != nil {
-			log.Println("err from create distance travel history => ", err)
-		} else {
-			log.Println("Create Battery Temperature History  run successfully....", time.Now())
-		}
-	})
-	scheduler.Every(24).Hour().Do(func() {
-		err := batteryService.UpdateBatteryDistanceTravelled()
-		if err != nil {
-			log.Println("Error to update battery DistanceTraveled : ", err)
-		} else {
-			log.Println("Update battery distance Travlled run successfully : ", time.Now())
-		}
-	})
-	scheduler.Every(5).Minute().Do(func() {
-		err := batteryService.UpdateBatteryStatus()
-		if err != nil {
-			log.Println("Error from update battery status => ", err)
-		} else {
-			log.Println("Update battery status run successfully.....", time.Now())
-		}
-	})
-
-	scheduler.Every(5).Minute().Do(func() {
-		err := vehicleService.CheckForBatteryCycle()
-		fmt.Println("Error from battery chycel :", err)
 	})
 
 	scheduler.StartBlocking()
