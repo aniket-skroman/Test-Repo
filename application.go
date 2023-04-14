@@ -235,7 +235,7 @@ func RunCronJob() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	f := LoggerFile("")
 	log.SetOutput(f)
-
+	fmt.Println("")
 	scheduler.Every(1).Minute().Do(func() {
 		fmt.Println("cron run ...battery to main : ", time.Now())
 		err := vehicleService.BatteryTempToMain()
