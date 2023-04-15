@@ -1,6 +1,9 @@
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type BatteryTemperatureAlert struct {
 	ID             primitive.ObjectID `json:"id" bson:"_id,omitempty"`
@@ -121,7 +124,14 @@ func (lst7Un *LastSevenHourUnreported) SetLastSevenHourUnreported(total int64) {
 type Last24HourUnreported struct {
 	ID               primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Time             string             `json:"time" bson:"time"`
+	UTCTime          primitive.DateTime `json:"utc_time" bson:"utc_time"`
 	UnreportedCount  int64              `json:"unreported_count" bson:"unreported_count"`
 	IndependentCount int64              `json:"independent_total_count" bson:"independent_total_count"`
 	CreatedAt        primitive.DateTime `json:"created_at" bson:"created_at"`
+}
+
+type Last24HourUnreportedSpecificData struct {
+	Time    string             `json:"time" bson:"time"`
+	UTCTime primitive.DateTime `json:"utc_time" bson:"utc_time"`
+	Data    []bson.M           `json:"data" bson:"data"`
 }

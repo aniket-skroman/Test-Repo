@@ -314,6 +314,15 @@ func RunCronJob() {
 		}
 	})
 
+	scheduler.Every(1).Hour().Do(func() {
+		err := batteryService.UpdateLast24HourUnreported()
+		if err != nil {
+			log.Println("Error from update last seven hour unreported => ", err)
+		} else {
+			log.Println("Update last seven hour unreported successfully.....", time.Now())
+		}
+	})
+
 	scheduler.StartBlocking()
 }
 

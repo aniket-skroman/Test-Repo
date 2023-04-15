@@ -138,17 +138,18 @@ func (ser *batteryService) UpdateLast24HourUnreported() error {
 		totalBatteryChan <- count
 	}()
 	totalCount := <-totalBatteryChan
-	for k, v := range data {
+	for i := range data {
 		var ans int32
-		for i := range v {
-			currentCount := v[i]["count"]
+		for j := range data[i].Data {
+			currentCount := data[i].Data[j]["count"]
 			ans += currentCount.(int32)
 		}
 
-		unreportCount := totalCount - int64(len(v))
+		unreportCount := totalCount - int64(len(data[i].Data))
 		temp := models.Last24HourUnreported{
-			Time:             k,
+			Time:             data[i].Time,
 			UnreportedCount:  int64(unreportCount),
+			UTCTime:          data[i].UTCTime,
 			IndependentCount: int64(ans),
 			CreatedAt:        primitive.NewDateTimeFromTime(time.Now()),
 		}
