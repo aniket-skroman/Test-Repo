@@ -18,6 +18,7 @@ import (
 
 var (
 	batterySevenHourUnreportedConnection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_seven_hour_unreported")
+	batteryS24HourUnreportedConnection   = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_twenty_four_hour_unreported")
 )
 
 type BatteryRepository interface {
@@ -39,9 +40,12 @@ type BatteryRepository interface {
 	// hourly reported and unreported count
 	GetLastSevenHourUnreported() ([]models.LastSevenHourUnreported, error)
 	GetLast1hoursUnreportedData() (map[string]int64, error)
-	GetLast7hoursUnreportedData() (map[string]int64, error)
+	GetLast7hoursUnreportedData() ([]models.LastSevenHourUnreported, error)
+	GetLast24hoursUnreportedData() (map[string][]bson.M, error)
 	InsertLastSevenHourUnreported(data models.LastSevenHourUnreported) error
 	DeleteLastSevenHourUnreported() error
+	InsertLast24HourUnreported(models.Last24HourUnreported) error
+	DeleteAllLast24HourUnreported() error
 }
 
 type batteryRepository struct {
@@ -49,6 +53,7 @@ type batteryRepository struct {
 	batteryReportingConnection           *mongo.Collection
 	batteryDistanceTravelledConnection   *mongo.Collection
 	batterySevenHourUnreportedCollection *mongo.Collection
+	battery24HourUnreportedCollection    *mongo.Collection
 }
 
 func NewBatteryRepository() BatteryRepository {
@@ -57,6 +62,7 @@ func NewBatteryRepository() BatteryRepository {
 		batteryReportingConnection:           batteryReportingCollection,
 		batteryDistanceTravelledConnection:   batteryDistanceTravelledCollection,
 		batterySevenHourUnreportedCollection: batterySevenHourUnreportedConnection,
+		battery24HourUnreportedCollection:    batteryS24HourUnreportedConnection,
 	}
 }
 
@@ -376,32 +382,47 @@ func (db *batteryRepository) GetLast1hoursUnreportedData() (map[string]int64, er
 	return mp, nil
 }
 
-func (db *batteryRepository) GetLast7hoursUnreportedData() (map[string]int64, error) {
+func (db *batteryRepository) GetLast7hoursUnreportedData() ([]models.LastSevenHourUnreported, error) {
 	ConnectToMDB()
 	var remote = "telematics"
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
 	ref := 1
-	mp := map[string]int64{}
-	currentTime := time.Now()
+	//mp := map[string]int64{}
+	batteryData := []models.LastSevenHourUnreported{}
+	currentTime := time.Now().UTC()
 	for ref <= 7 {
 		if ref == 1 {
 			from := currentTime.Add(time.Hour * time.Duration(-ref))
 			data, _ := QueryHelper(from, currentTime, rawDataCollection)
 			ref++
 			hourFormat := currentTime.Format("15:04:05")
-			mp[hourFormat] = data
+			temp := models.LastSevenHourUnreported{
+				Time:            hourFormat,
+				UnreportedCount: data,
+				UTCTime:         primitive.NewDateTimeFromTime(currentTime),
+				CreatedAt:       primitive.NewDateTimeFromTime(time.Now()),
+			}
+			batteryData = append(batteryData, temp)
+			//mp[hourFormat] = data
 		} else {
 			toint := ref - 1
 			from := currentTime.Add(time.Duration(-ref) * time.Hour)
 			to := currentTime.Add(time.Duration(-toint) * time.Hour)
 			data, _ := QueryHelper(from, to, rawDataCollection)
 			hourFormat := to.Format("15:04:05")
-			mp[hourFormat] = data
+			//mp[hourFormat] = data
+			temp := models.LastSevenHourUnreported{
+				Time:            hourFormat,
+				UnreportedCount: data,
+				UTCTime:         primitive.NewDateTimeFromTime(to),
+				CreatedAt:       primitive.NewDateTimeFromTime(time.Now()),
+			}
+			batteryData = append(batteryData, temp)
 			ref++
 		}
 	}
 
-	return mp, nil
+	return batteryData, nil
 }
 
 func QueryHelper(from, to time.Time, rawDataCollection *mongo.Collection) (int64, error) {
@@ -439,10 +460,91 @@ func QueryHelper(from, to time.Time, rawDataCollection *mongo.Collection) (int64
 	return int64(len(bdata)), nil
 }
 
+func (db *batteryRepository) GetLast24hoursUnreportedData() (map[string][]bson.M, error) {
+	ConnectToMDB()
+	var remote = "telematics"
+	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
+	ref := 1
+	mp := map[string][]bson.M{}
+	currentTime := time.Now()
+	for ref <= 24 {
+		if ref == 1 {
+			from := currentTime.Add(time.Hour * time.Duration(-ref))
+			data, _ := QueryHelperFor24HourUnreported(from, currentTime, rawDataCollection)
+			ref++
+			hourFormat := currentTime.Format("15:04:05")
+			mp[hourFormat] = data
+
+		} else {
+			toint := ref - 1
+			from := currentTime.Add(time.Duration(-ref) * time.Hour)
+			to := currentTime.Add(time.Duration(-toint) * time.Hour)
+			data, _ := QueryHelperFor24HourUnreported(from, to, rawDataCollection)
+			hourFormat := to.Format("15:04:05")
+			mp[hourFormat] = data
+			ref++
+
+		}
+	}
+
+	return mp, nil
+}
+
+func QueryHelperFor24HourUnreported(from, to time.Time, rawDataCollection *mongo.Collection) ([]bson.M, error) {
+
+	filter := []bson.M{
+		{
+			"$match": bson.M{
+				"created_at": bson.M{
+					"$gt":  from,
+					"$lte": to,
+				},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": "$bms_id",
+				"count": bson.M{
+					"$sum": 1,
+				},
+			},
+		},
+	}
+
+	cursor, curErr := rawDataCollection.Aggregate(context.TODO(), filter)
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	var bdata []bson.M
+
+	if err := cursor.All(context.TODO(), &bdata); err != nil {
+		return nil, err
+	}
+
+	return bdata, nil
+}
+
 func (db *batteryRepository) GetBatteryCount() (int64, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
 	count, countErr := db.batteryMainConnection.EstimatedDocumentCount(ctx)
 	return count, countErr
 
+}
+
+func (db *batteryRepository) InsertLast24HourUnreported(data models.Last24HourUnreported) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.battery24HourUnreportedCollection.InsertOne(ctx, data)
+	return err
+}
+
+func (db *batteryRepository) DeleteAllLast24HourUnreported() error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.battery24HourUnreportedCollection.DeleteMany(ctx, bson.M{})
+	return err
 }
