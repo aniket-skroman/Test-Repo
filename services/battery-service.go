@@ -20,6 +20,7 @@ type BatteryService interface {
 	UpdateBatteryDistanceTravelled() error
 
 	UpdateLastSevenHourUnReported() error
+	UpdateLast24HourUnreported() error
 }
 
 type batteryService struct {
@@ -111,14 +112,52 @@ func (ser *batteryService) UpdateLastSevenHourUnReported() error {
 	delErr := ser.batteryRepo.DeleteLastSevenHourUnreported()
 	fmt.Println("Delete Error : ", delErr)
 
-	for k, v := range data {
-		temp := models.LastSevenHourUnreported{
-			Time:            k,
-			UnreportedCount: v,
-			CreatedAt:       primitive.NewDateTimeFromTime(time.Now()),
-		}
-		_ = ser.batteryRepo.InsertLastSevenHourUnreported(temp)
+	for i := range data {
+		_ = ser.batteryRepo.InsertLastSevenHourUnreported(data[i])
 	}
+
+	return nil
+}
+
+func (ser *batteryService) UpdateLast24HourUnreported() error {
+	data, err := ser.batteryRepo.GetLast24hoursUnreportedData()
+
+	if err != nil {
+		return err
+	}
+
+	// delete all last counts
+	delErr := ser.batteryRepo.DeleteAllLast24HourUnreported()
+	fmt.Println("Delete All 24 hours Counts Error : ", delErr)
+
+	// fetch total battery
+	totalBatteryChan := make(chan int64)
+
+	go func() {
+		count, _ := ser.batteryRepo.GetBatteryCount()
+		totalBatteryChan <- count
+	}()
+	totalCount := <-totalBatteryChan
+	for k, v := range data {
+		var ans int32
+		for i := range v {
+			currentCount := v[i]["count"]
+			ans += currentCount.(int32)
+		}
+
+		unreportCount := totalCount - int64(len(v))
+		temp := models.Last24HourUnreported{
+			Time:             k,
+			UnreportedCount:  int64(unreportCount),
+			IndependentCount: int64(ans),
+			CreatedAt:        primitive.NewDateTimeFromTime(time.Now()),
+		}
+
+		err := ser.batteryRepo.InsertLast24HourUnreported(temp)
+		fmt.Println("New data inserted error : ", err)
+	}
+
+	// defer close(totalBatteryChan)
 
 	return nil
 }
@@ -127,7 +166,7 @@ func (ser *batteryService) GetLastSevenHourUnreported() ([]models.LastSevenHourU
 	return ser.batteryRepo.GetLastSevenHourUnreported()
 }
 
-func (ser *batteryService) GetUnreportedForSevenHour() (map[string]int64, error) {
+func (ser *batteryService) GetUnreportedForSevenHour() ([]models.LastSevenHourUnreported, error) {
 	allBattery := make(chan int64)
 
 	go func() {
@@ -137,13 +176,13 @@ func (ser *batteryService) GetUnreportedForSevenHour() (map[string]int64, error)
 
 	res, err := ser.batteryRepo.GetLast7hoursUnreportedData()
 	if err != nil {
-		return map[string]int64{}, err
+		return nil, err
 	}
 
 	total := <-allBattery
-	for k, v := range res {
-		temp := total - v
-		res[k] = temp
+
+	for i := range res {
+		res[i].SetLastSevenHourUnreported(total)
 	}
 	close(allBattery)
 	return res, nil

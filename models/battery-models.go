@@ -108,6 +108,20 @@ type CreateCycleBasedReport struct {
 type LastSevenHourUnreported struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Time            string             `json:"time" bson:"time"`
+	UTCTime         primitive.DateTime `json:"utc_time" bson:"utc_time"`
 	UnreportedCount int64              `json:"unreported_count" bson:"unreported_count"`
 	CreatedAt       primitive.DateTime `json:"created_at" bson:"created_at"`
+}
+
+func (lst7Un *LastSevenHourUnreported) SetLastSevenHourUnreported(total int64) {
+	cal := total - lst7Un.UnreportedCount
+	lst7Un.UnreportedCount = cal
+}
+
+type Last24HourUnreported struct {
+	ID               primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Time             string             `json:"time" bson:"time"`
+	UnreportedCount  int64              `json:"unreported_count" bson:"unreported_count"`
+	IndependentCount int64              `json:"independent_total_count" bson:"independent_total_count"`
+	CreatedAt        primitive.DateTime `json:"created_at" bson:"created_at"`
 }
