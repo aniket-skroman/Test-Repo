@@ -3,8 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"sync"
 
 	"time"
 
@@ -104,70 +102,22 @@ func (db *batteryService) UpdateBatteryDistanceTravelled() error {
 
 func (ser *batteryService) UpdateLastSevenHourUnReported() error {
 	// fetching old seven records
-	res, err := ser.batteryRepo.GetLastSevenHourUnreported()
+	data, err := ser.GetUnreportedForSevenHour()
 	if err != nil {
 		return err
 	}
 
-	if len(res) <= 0 {
-		data, err := ser.GetUnreportedForSevenHour()
-		if err != nil {
-			return err
+	// delete all previous  records...
+	delErr := ser.batteryRepo.DeleteLastSevenHourUnreported()
+	fmt.Println("Delete Error : ", delErr)
+
+	for k, v := range data {
+		temp := models.LastSevenHourUnreported{
+			Time:            k,
+			UnreportedCount: v,
+			CreatedAt:       primitive.NewDateTimeFromTime(time.Now()),
 		}
-		for k, v := range data {
-			temp := models.LastSevenHourUnreported{
-				Time:            k,
-				UnreportedCount: v,
-				CreatedAt:       primitive.NewDateTimeFromTime(time.Now()),
-			}
-			_ = ser.batteryRepo.InsertLastSevenHourUnreported(temp)
-		}
-	} else {
-		dataChan := make(chan map[string]int64)
-		var wg sync.WaitGroup
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			data, err := ser.GetUnreportedForOneHour()
-			if err != nil {
-				return
-			}
-			dataChan <- data
-		}()
-		currentTime := time.Now()
-		for i := range res {
-			hour := res[i].Time[:2]
-			dbhour, _ := strconv.Atoi(hour)
-
-			currentHour := currentTime.Format("15:04:05")
-			currentHourConverted, _ := strconv.Atoi(currentHour[:2])
-
-			diff := int(currentHourConverted) - int(dbhour)
-
-			if diff >= 7 {
-				fmt.Println("Diff get matched : ", res[i].ID, " time value : ", diff)
-				// delErr := ser.batteryRepo.DeleteLastSevenHourUnreported(res[i].ID)
-				// fmt.Println("New Delete Err : ", delErr)
-				// wg.Wait()
-				// newHourData := <-dataChan
-				// for k, v := range newHourData {
-				// 	temp := models.LastSevenHourUnreported{
-				// 		Time:            k,
-				// 		UnreportedCount: v,
-				// 		CreatedAt:       primitive.NewDateTimeFromTime(time.Now()),
-				// 	}
-
-				// 	err := ser.batteryRepo.InsertLastSevenHourUnreported(temp)
-				// 	fmt.Println("Inserted Err : ", err)
-				// }
-
-			} else {
-				fmt.Println("Diff not matched :")
-			}
-		}
-
-		// close(dataChan)
+		_ = ser.batteryRepo.InsertLastSevenHourUnreported(temp)
 	}
 
 	return nil

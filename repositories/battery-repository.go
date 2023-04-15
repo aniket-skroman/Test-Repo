@@ -41,7 +41,7 @@ type BatteryRepository interface {
 	GetLast1hoursUnreportedData() (map[string]int64, error)
 	GetLast7hoursUnreportedData() (map[string]int64, error)
 	InsertLastSevenHourUnreported(data models.LastSevenHourUnreported) error
-	DeleteLastSevenHourUnreported(recId primitive.ObjectID) error
+	DeleteLastSevenHourUnreported() error
 }
 
 type batteryRepository struct {
@@ -342,15 +342,12 @@ func (db *batteryRepository) GetLastSevenHourUnreported() ([]models.LastSevenHou
 }
 
 // delete last record for only maintain a 7 hour
-func (db *batteryRepository) DeleteLastSevenHourUnreported(recId primitive.ObjectID) error {
+func (db *batteryRepository) DeleteLastSevenHourUnreported() error {
 
-	filter := bson.D{
-		bson.E{Key: "_id", Value: recId},
-	}
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	_, err := db.batterySevenHourUnreportedCollection.DeleteOne(ctx, filter)
+	_, err := db.batterySevenHourUnreportedCollection.DeleteMany(ctx, bson.M{})
 	return err
 }
 
@@ -440,7 +437,6 @@ func QueryHelper(from, to time.Time, rawDataCollection *mongo.Collection) (int64
 	}
 
 	return int64(len(bdata)), nil
-
 }
 
 func (db *batteryRepository) GetBatteryCount() (int64, error) {
