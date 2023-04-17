@@ -127,28 +127,17 @@ func (ser *batteryService) UpdateLast24HourUnreported() error {
 	}
 
 	// delete all last counts
-	delErr := ser.batteryRepo.DeleteAllLast24HourUnreported()
-	fmt.Println("Delete All 24 hours Counts Error : ", delErr)
+	_ = ser.batteryRepo.DeleteAllLast24HourUnreported()
 
-	// fetch total battery
-	totalBatteryChan := make(chan int64)
-
-	go func() {
-		count, _ := ser.batteryRepo.GetBatteryCount()
-		totalBatteryChan <- count
-	}()
-	totalCount := <-totalBatteryChan
 	for i := range data {
 		var ans int32
 		for j := range data[i].Data {
 			currentCount := data[i].Data[j]["count"]
 			ans += currentCount.(int32)
 		}
-
-		unreportCount := totalCount - int64(len(data[i].Data))
 		temp := models.Last24HourUnreported{
 			Time:             data[i].Time,
-			UnreportedCount:  int64(unreportCount),
+			UnreportedCount:  int64(len(data[i].Data)),
 			UTCTime:          data[i].UTCTime,
 			IndependentCount: int64(ans),
 			CreatedAt:        primitive.NewDateTimeFromTime(time.Now()),
