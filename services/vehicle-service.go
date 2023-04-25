@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -248,5 +249,6 @@ func (s *vehicleservice) CheckForBatteryCycle() error {
 		return err
 	}
 
+	fmt.Println("Battery len : ", len(batteryData))
 	return s.vehicleRepository.UpdateBatteryCycle(batteryData)
 }
