@@ -1040,7 +1040,6 @@ func (db *vehiclerepository) UpdateCycleOldCycleCount(batteryData []models.Batte
 func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHardwareMain) error {
 	var bmsIDS []string
 	var cycleStartOperation, batteryDistanceOperation []mongo.WriteModel
-	var counter int
 	for i := range batteryData {
 
 		filter := bson.D{
@@ -1055,8 +1054,7 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 		db.batteryCycleTempReportConnection.FindOne(ctx, filter).Decode(&batteryCycle)
 
 		if (batteryCycle == models.CreateCycleBasedReport{}) {
-			fmt.Println("New option creation started for : ", counter)
-			counter++
+
 			cycleStartOption := mongo.NewUpdateOneModel()
 
 			update := bson.D{
