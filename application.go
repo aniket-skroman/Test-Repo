@@ -300,7 +300,8 @@ func RunCronJob() {
 		}
 	})
 
-	scheduler.Every(5).Minute().Do(func() {
+	scheduler.Every(1).Hour().Do(func() {
+		fmt.Println("Cycle count checking start...")
 		err := vehicleService.CheckForBatteryCycle()
 		fmt.Println("Error from battery chycel :", err)
 	})

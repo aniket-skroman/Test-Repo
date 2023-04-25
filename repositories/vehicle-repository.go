@@ -637,14 +637,13 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 
 		if batterySOC <= 25 {
 			batterySOCData = "Critical"
-		}else if batterySOC > 25 && batterySOC <= 40 {
+		} else if batterySOC > 25 && batterySOC <= 40 {
 			batterySOCData = "Ok"
-		}else if batterySOC > 40 && batterySOC <= 60 {
+		} else if batterySOC > 40 && batterySOC <= 60 {
 			batterySOCData = "Good"
-		}else {
+		} else {
 			batterySOCData = "Very Good"
 		}
-
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
@@ -845,98 +844,6 @@ func (db *vehiclerepository) CreateMBMSRawAndSOCData(hardWareData []models.Batte
 		// }
 	}
 
-	// var operations []mongo.WriteModel
-	// var operations2 []mongo.WriteModel
-
-	// for i := range hardWareData {
-	// 	option := mongo.NewUpdateOneModel()
-	// 	option.SetFilter(bson.D{
-	// 		bson.E{Key: "bms_id", Value: hardWareData[i]},
-	// 	})
-
-	// 	LocalTimeStamp := helper.ConvertUTCToIndia()
-	// 	localDate := LocalTimeStamp[0]
-	// 	localTime := LocalTimeStamp[1]
-
-	// 	update := bson.D{
-	// 		bson.E{Key: "$set", Value: bson.D{
-	// 			bson.E{Key: "type", Value: hardWareData[i].Type},
-	// 			bson.E{Key: "bms_id", Value: hardWareData[i].BmsID},
-	// 			bson.E{Key: "gsm_signal_strength", Value: hardWareData[i].GsmSignalStrength},
-	// 			bson.E{Key: "gps_signal_strength", Value: hardWareData[i].GpsSignalStrength},
-	// 			bson.E{Key: "gps_satellite_in_view_count", Value: hardWareData[i].GpsSatelliteInViewCount},
-	// 			bson.E{Key: "gnss_satellite_used_count", Value: hardWareData[i].GnssSatelliteUsedCount},
-	// 			bson.E{Key: "gps_status", Value: hardWareData[i].GpsStatus},
-	// 			bson.E{Key: "location_longitude", Value: hardWareData[i].LocationLongitude},
-	// 			bson.E{Key: "location_latitude", Value: hardWareData[i].LocationLatitude},
-	// 			bson.E{Key: "location_speed", Value: hardWareData[i].LocationSpeed},
-	// 			bson.E{Key: "location_angle", Value: hardWareData[i].LocationAngle},
-	// 			bson.E{Key: "iot_temperature", Value: hardWareData[i].IotTemperature},
-	// 			bson.E{Key: "gprs_total_data_used", Value: hardWareData[i].GprsTotalDataUsed},
-	// 			bson.E{Key: "software_version", Value: hardWareData[i].SoftwareVersion},
-	// 			bson.E{Key: "bms_software_version", Value: hardWareData[i].BmsSoftwareVersion},
-	// 			bson.E{Key: "iccid", Value: hardWareData[i].Iccid},
-	// 			bson.E{Key: "imei", Value: hardWareData[i].Imei},
-	// 			bson.E{Key: "gprs_apn", Value: hardWareData[i].GprsApn},
-	// 			bson.E{Key: "is_first_fill", Value: true},
-	// 			bson.E{Key: "battery_voltage", Value: hardWareData[i].BatteryVoltage},
-	// 			bson.E{Key: "battery_current", Value: hardWareData[i].BatteryCurrent},
-	// 			bson.E{Key: "battery_soc", Value: hardWareData[i].BatterySoc},
-	// 			bson.E{Key: "battery_temperature", Value: hardWareData[i].BatteryTemperature},
-	// 			bson.E{Key: "battery_remaining_capacity", Value: hardWareData[i].BatteryRemainingCapacity},
-	// 			bson.E{Key: "battery_full_charge_capacity", Value: hardWareData[i].BatteryFullChargeCapacity},
-	// 			bson.E{Key: "battery_cycle_count", Value: hardWareData[i].BatteryCycleCount},
-	// 			bson.E{Key: "battery_rated_capacity", Value: hardWareData[i].BatteryRatedCapacity},
-	// 			bson.E{Key: "battery_rated_voltage", Value: hardWareData[i].BatteryRatedVoltage},
-	// 			bson.E{Key: "battery_version", Value: hardWareData[i].BatteryVersion},
-	// 			bson.E{Key: "battery_manufacture_date", Value: hardWareData[i].BatteryManufactureDate},
-	// 			bson.E{Key: "battery_manufacture_name", Value: hardWareData[i].BatteryManufactureName},
-	// 			bson.E{Key: "battery_name", Value: hardWareData[i].BatteryName},
-	// 			bson.E{Key: "battery_chem_id", Value: hardWareData[i].BatteryChemID},
-	// 			bson.E{Key: "bms_bar_code", Value: hardWareData[i].BmsBarCode},
-	// 			bson.E{Key: "is_second_fill", Value: true},
-	// 			bson.E{Key: "cell_voltage_list_0", Value: hardWareData[i].CellVoltageList0},
-	// 			bson.E{Key: "cell_voltage_list_1", Value: hardWareData[i].CellVoltageList1},
-	// 			bson.E{Key: "history", Value: hardWareData[i].History},
-	// 			bson.E{Key: "error_count", Value: hardWareData[i].ErrorCount},
-	// 			bson.E{Key: "battery_status", Value: hardWareData[i].BatteryStatus},
-	// 			bson.E{Key: "is_third_fill", Value: true},
-	// 			bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
-	// 			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
-	// 			bson.E{Key: "local_d", Value: localDate},
-	// 			bson.E{Key: "local_t", Value: localTime},
-	// 			bson.E{Key: "iso_timestamp", Value: isoDateTime},
-	// 		}},
-	// 	}
-	// 	option.SetUpdate(&update)
-	// 	option.SetUpsert(true)
-	// 	operations = append(operations, option)
-	// 	option2 := option
-	// 	option2.SetUpsert(false)
-	// 	operations2 = append(operations2, option2)
-
-	// 	res, err := rawDataCollection.InsertOne(context.TODO(), hardWareData[i])
-	// 	fmt.Println(res.InsertedID, err)
-
-	// }
-
-	// bulkOption := options.BulkWriteOptions{}
-	// bulkOption.SetOrdered(true)
-
-	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
-
-	// go func(data []mongo.WriteModel) {
-	// 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// 	// defer cancel()
-	// 	_, _ = socDataCollection.BulkWrite(context.TODO(), data)
-
-	// }(operations2)
-	// res1, err1 := socDataCollection.BulkWrite(context.TODO(), operations2)
-
-	// res2, err2 := rawDataCollection.BulkWrite(context.TODO(), operations)
-	// fmt.Println(res1, res2)
-	// fmt.Println(err1, err2)
 	return nil
 }
 
@@ -1034,7 +941,6 @@ func ConnectToMDB() *mongo.Client {
 func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.BatteryHardwareMain) error {
 	// ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
 	// defer cancel()
-	fmt.Println("Update BMS Distance Travlled RUN SUCCESSFUULY ..... WITH DATA : ", len(batteryData))
 	var operations []mongo.WriteModel
 
 	for i := range batteryData {
@@ -1064,16 +970,23 @@ func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.Bat
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
 
-	res, err := db.batteryDistanceTravelledConnection.BulkWrite(context.TODO(), operations)
-	fmt.Println("Update BMS Distance Travlled result : ", res)
+	_, err := db.batteryDistanceTravelledConnection.BulkWrite(context.TODO(), operations)
 	return err
 
 }
 
 func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMain, error) {
-
-	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{})
-
+	fmt.Println("start fetching all battery data...")
+	opts := options.Find().SetProjection(
+		bson.D{
+			bson.E{Key: "bms_id", Value: 1},
+			bson.E{Key: "battery_cycle_count", Value: 1},
+			bson.E{Key: "old_cycle_count", Value: 1},
+			bson.E{Key: "location_latitude", Value: 1},
+			bson.E{Key: "location_longitude", Value: 1},
+		},
+	)
+	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{}, opts)
 	if curErr != nil {
 		return nil, curErr
 	}
@@ -1083,7 +996,6 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 	if err := cursor.All(context.TODO(), &batteryData); err != nil {
 		return nil, err
 	}
-
 	newCycleReport := []models.BatteryHardwareMain{}
 
 	for i := range batteryData {
@@ -1091,13 +1003,13 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 			newCycleReport = append(newCycleReport, batteryData[i])
 		}
 	}
+	fmt.Println("Returning from repo.....")
 	return newCycleReport, nil
 }
 
 //update current cycle count to old count
 
 func (db *vehiclerepository) UpdateCycleOldCycleCount(batteryData []models.BatteryHardwareMain) error {
-
 	operation := []mongo.WriteModel{}
 
 	for i := range batteryData {
@@ -1127,6 +1039,8 @@ func (db *vehiclerepository) UpdateCycleOldCycleCount(batteryData []models.Batte
 
 func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHardwareMain) error {
 	var bmsIDS []string
+	var cycleStartOperation, batteryDistanceOperation []mongo.WriteModel
+	var counter int
 	for i := range batteryData {
 
 		filter := bson.D{
@@ -1141,31 +1055,71 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 		db.batteryCycleTempReportConnection.FindOne(ctx, filter).Decode(&batteryCycle)
 
 		if (batteryCycle == models.CreateCycleBasedReport{}) {
+			fmt.Println("New option creation started for : ", counter)
+			counter++
+			cycleStartOption := mongo.NewUpdateOneModel()
+
+			update := bson.D{
+				bson.E{Key: "$set", Value: bson.D{
+					bson.E{Key: "bms_id", Value: batteryData[i].BmsID},
+					bson.E{Key: "asset", Value: batteryData[i].BmsID},
+					bson.E{Key: "is_start", Value: true},
+					bson.E{Key: "start_time", Value: primitive.NewDateTimeFromTime(time.Now())},
+					bson.E{Key: "cycle_no", Value: batteryData[i].BatteryCycleCount},
+				}},
+			}
+
+			cycleStartOption.SetFilter(filter)
+			cycleStartOption.SetUpdate(update)
+			cycleStartOption.SetUpsert(true)
+
 			//start cycle
+			// cycleStart := models.CreateCycleBasedReport{}
+			// cycleStart.BMSID = batteryData[i].BmsID
+			// cycleStart.Asset = batteryData[i].BmsID
+			// cycleStart.IsStart = true
+			// cycleStart.StartTime = primitive.NewDateTimeFromTime(time.Now())
+			// cycleStart.CycleNo = batteryData[i].BatteryCycleCount
 
-			cycleStart := models.CreateCycleBasedReport{}
-			cycleStart.BMSID = batteryData[i].BmsID
-			cycleStart.Asset = batteryData[i].BmsID
-			cycleStart.IsStart = true
-			cycleStart.StartTime = primitive.NewDateTimeFromTime(time.Now())
-			cycleStart.CycleNo = batteryData[i].BatteryCycleCount
+			// tempRes, tempErr := db.batteryCycleTempReportConnection.InsertOne(context.TODO(), cycleStart)
+			// if tempErr != nil {
+			// 	fmt.Println("Error occur : ", tempErr)
+			// 	continue
+			// }
 
-			db.batteryCycleTempReportConnection.InsertOne(context.TODO(), cycleStart)
+			// fmt.Println("Temp Report Connection : ", tempRes.InsertedID)
 
-			//create battery location db
-			distanceTravel := new(models.BatteryDistanceTravelled)
+			batteryDistanceOption := mongo.NewUpdateOneModel()
 
 			locationData := models.LocationData{
 				Latitude:  batteryData[i].LocationLatitude,
 				Longitude: batteryData[i].LocationLongitude,
 			}
 
-			distanceTravel.BMSID = cycleStart.BMSID
-			distanceTravel.Location = append(distanceTravel.Location, locationData)
-			distanceTravel.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+			distanceUpdate := bson.D{
+				bson.E{Key: "$set", Value: bson.D{
+					bson.E{Key: "bms_id", Value: batteryData[i].BmsID},
+					bson.E{Key: "location", Value: locationData},
+					bson.E{Key: "created_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+				}},
+			}
 
-			db.batteryCycleLocationConnection.InsertOne(context.TODO(), distanceTravel)
+			batteryDistanceOption.SetFilter(filter)
+			batteryDistanceOption.SetUpdate(distanceUpdate)
+			batteryDistanceOption.SetUpsert(true)
 
+			cycleStartOperation = append(cycleStartOperation, cycleStartOption)
+			batteryDistanceOperation = append(batteryDistanceOperation, batteryDistanceOption)
+
+			//create battery location db
+			// distanceTravel := new(models.BatteryDistanceTravelled)
+
+			// distanceTravel.BMSID = cycleStart.BMSID
+			// distanceTravel.Location = append(distanceTravel.Location, locationData)
+			// distanceTravel.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+
+			// res, err := db.batteryCycleLocationConnection.InsertOne(context.TODO(), distanceTravel)
+			// fmt.Println("Create Temp Report Error : ", err, " temp report inserted id : ", res.InsertedID)
 		} else {
 			var totalSpeed int
 			var avgSpeed int
@@ -1197,7 +1151,9 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 
 			}
 
-			avgSpeed = totalSpeed / len(batteryData[i].SpeedCal)
+			if totalSpeed > 0 && len(batteryData[i].SpeedCal) > 0 {
+				avgSpeed = totalSpeed / len(batteryData[i].SpeedCal)
+			}
 
 			// km calculater
 
@@ -1221,10 +1177,35 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 		}
 	}
 
+	cycleStartErr := db.StartNewBatteryCycle(cycleStartOperation)
+	createLocationErr := db.CreateBatteryLocationData(batteryDistanceOperation)
+
+	fmt.Println("Cycle start Error : ", cycleStartErr, " and create location data Error : ", createLocationErr)
+
 	db.UpdateBatteryCycleDataInBatteryMain(bmsIDS)
 
 	return nil
 
+}
+
+// create a new battery cycle start
+func (db *vehiclerepository) StartNewBatteryCycle(operations []mongo.WriteModel) error {
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	res, err := db.batteryCycleTempReportConnection.BulkWrite(context.TODO(), operations)
+	fmt.Println("Start new battery cycle inserted count : ", res.InsertedCount)
+	return err
+}
+
+// create  a battery location data
+func (db *vehiclerepository) CreateBatteryLocationData(operations []mongo.WriteModel) error {
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	res, err := db.batteryCycleLocationConnection.BulkWrite(context.TODO(), operations)
+	fmt.Println("Create battery location data inserted count : ", res.InsertedCount)
+	return err
 }
 
 func (db *vehiclerepository) GetBatteryCycleLocations(bmsID string) (float64, error) {
@@ -1308,8 +1289,8 @@ func (db *vehiclerepository) UpdateBatteryCycleDataInBatteryMain(bmsIDS []string
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
 
-	res, err := db.batteryMainConnection.BulkWrite(context.TODO(), operations)
-	fmt.Println(res)
+	_, err := db.batteryMainConnection.BulkWrite(context.TODO(), operations)
+	fmt.Println("Update Battery Cycle Data In Battery Main Inserted Count : ")
 	return err
 }
 
