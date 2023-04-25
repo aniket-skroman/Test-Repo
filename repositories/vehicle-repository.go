@@ -1127,24 +1127,29 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 			var minSoc int = 100000000
 			var maxSoc int = -100000000
 
+			var topSpeedChanged, lowSpeedChanged, minSocChanged, maxSocChanged bool
+
 			for j := 0; j < len(batteryData[i].SpeedCal); j++ {
 				totalSpeed += batteryData[i].SpeedCal[j]
 				if topSpeed < batteryData[i].SpeedCal[j] {
 					topSpeed = batteryData[i].SpeedCal[j]
+					topSpeedChanged = true
 				}
 				if lowSpeed > batteryData[i].SpeedCal[j] {
 					lowSpeed = batteryData[i].SpeedCal[j]
-
+					lowSpeedChanged = true
 				}
 			}
 
 			for j := 0; j < len(batteryData[i].MinMaxSoc); j++ {
 				if minSoc > batteryData[i].MinMaxSoc[j] {
 					minSoc = batteryData[i].MinMaxSoc[j]
+					minSocChanged = true
 				}
 
 				if maxSoc < batteryData[i].MinMaxSoc[j] {
 					maxSoc = batteryData[i].MinMaxSoc[j]
+					maxSocChanged = true
 				}
 
 			}
@@ -1154,24 +1159,25 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 			}
 
 			// km calculater
+			if topSpeedChanged && lowSpeedChanged && minSocChanged && maxSocChanged {
+				kmT, _ := db.GetBatteryCycleLocations(batteryCycle.BMSID)
+				batteryCycle.KMTravelled = kmT
+				batteryCycle.MinSoc = minSoc
+				batteryCycle.MaxSoc = maxSoc
+				batteryCycle.AvgSpeed = avgSpeed
+				batteryCycle.TopSpeed = topSpeed
+				batteryCycle.LowestSpeed = lowSpeed
+				batteryCycle.EndTime = primitive.NewDateTimeFromTime(time.Now())
+				batteryCycle.IsEnd = true
 
-			kmT, _ := db.GetBatteryCycleLocations(batteryCycle.BMSID)
-			batteryCycle.KMTravelled = kmT
-			batteryCycle.MinSoc = minSoc
-			batteryCycle.MaxSoc = maxSoc
-			batteryCycle.AvgSpeed = avgSpeed
-			batteryCycle.TopSpeed = topSpeed
-			batteryCycle.LowestSpeed = lowSpeed
-			batteryCycle.EndTime = primitive.NewDateTimeFromTime(time.Now())
-			batteryCycle.IsEnd = true
+				// create cycle history
+				db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
 
-			// create cycle history
-			db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
+				// remove cycle temp data
+				db.RemoveCycleTempData(batteryCycle.BMSID)
 
-			// remove cycle temp data
-			db.RemoveCycleTempData(batteryCycle.BMSID)
-
-			bmsIDS = append(bmsIDS, batteryData[i].BmsID)
+				bmsIDS = append(bmsIDS, batteryData[i].BmsID)
+			}
 		}
 	}
 
