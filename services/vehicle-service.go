@@ -38,11 +38,13 @@ type VehicleServices interface {
 
 type vehicleservice struct {
 	vehicleRepository repositories.VehicleRepository
+	batteryService    BatteryService
 }
 
-func NewVehicleService(repo repositories.VehicleRepository) VehicleServices {
+func NewVehicleService(repo repositories.VehicleRepository, batteryService BatteryService) VehicleServices {
 	return &vehicleservice{
 		vehicleRepository: repo,
+		batteryService:    batteryService,
 	}
 }
 
@@ -244,11 +246,36 @@ func (s *vehicleservice) AddTestData() error {
 }
 
 func (s *vehicleservice) CheckForBatteryCycle() error {
+	// fetch all data from main
+	fmt.Println("Fetching data from main...")
 	batteryData, err := s.vehicleRepository.CheckForBatteryCycle()
 	if err != nil {
 		return err
 	}
+	//fmt.Println("len of battery data : ", len(batteryData))
+	s.batteryService.CheckForBatteryChargingReport(batteryData)
+	// var wg sync.WaitGroup
+	// wg.Add(1)
 
-	fmt.Println("Battery len : ", len(batteryData))
-	return s.vehicleRepository.UpdateBatteryCycle(batteryData)
+	// work for battery charge report
+	// go func() {
+	// 	defer wg.Done()
+	// 	s.batteryService.CheckForBatteryChargingReport(batteryData)
+	// }()
+
+	// prepare for Cycle based report, Charging Report
+	// var newCycleReport = []models.BatteryHardwareMain{}
+
+	// for i := range batteryData {
+	// 	if batteryData[i].BatteryCycleCount != batteryData[i].OldCycleCount {
+	// 		newCycleReport = append(newCycleReport, batteryData[i])
+	// 	}
+
+	// }
+
+	// fmt.Println("Battery len : ", len(newCycleReport))
+	// wg.Wait()
+	return nil
+
+	// return s.vehicleRepository.UpdateBatteryCycle(newCycleReport)
 }

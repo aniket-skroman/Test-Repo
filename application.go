@@ -226,10 +226,10 @@ const (
 	ContentTypeText   = "text/plain; charset=utf-8"
 )
 
-var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
-var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo)
 var batteryRepo repositories.BatteryRepository = repositories.NewBatteryRepository()
 var batteryService services.BatteryService = services.NewBatteryService(batteryRepo)
+var vehicleRepo repositories.VehicleRepository = repositories.NewVehicleRepository()
+var vehicleService services.VehicleServices = services.NewVehicleService(vehicleRepo, batteryService)
 
 func RunCronJob() {
 	scheduler := gocron.NewScheduler(time.UTC)

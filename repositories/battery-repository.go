@@ -19,6 +19,8 @@ import (
 var (
 	batterySevenHourUnreportedConnection = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_seven_hour_unreported")
 	batteryS24HourUnreportedConnection   = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "battery_twenty_four_hour_unreported")
+	chargingReportTempConnection         = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "charging_temp_report")
+	chargingReportHistoryConnection      = dbconfig.GetCollection(dbconfig.ResolveClientDB(), "charging_report_history")
 )
 
 type BatteryRepository interface {
@@ -46,6 +48,15 @@ type BatteryRepository interface {
 	DeleteLastSevenHourUnreported() error
 	InsertLast24HourUnreported(models.Last24HourUnreported) error
 	DeleteAllLast24HourUnreported() error
+
+	//Charging Reports
+	CheckChargingCycleStartOrNot(bmsId string) models.StartChargingReport
+	StartChargingReport([]models.StartChargingReport) error
+	EndChargingReport([]models.EndChargingReport) error
+	GetCurrentCycleEnd() ([]models.ChargingReport, error)
+	CreateChargingReportHistory(batteryData []models.ChargingReport) error
+	UpdateBatteryCurrentInMain(oldCurrentData []models.UpdateOldCurrent) error
+	DeleteChargingTempReport(bmsIDs []string) error
 }
 
 type batteryRepository struct {
@@ -54,6 +65,8 @@ type batteryRepository struct {
 	batteryDistanceTravelledConnection   *mongo.Collection
 	batterySevenHourUnreportedCollection *mongo.Collection
 	battery24HourUnreportedCollection    *mongo.Collection
+	chargingReportTempCollection         *mongo.Collection
+	chargingReportHistoryCollection      *mongo.Collection
 }
 
 func NewBatteryRepository() BatteryRepository {
@@ -63,6 +76,8 @@ func NewBatteryRepository() BatteryRepository {
 		batteryDistanceTravelledConnection:   batteryDistanceTravelledCollection,
 		batterySevenHourUnreportedCollection: batterySevenHourUnreportedConnection,
 		battery24HourUnreportedCollection:    batteryS24HourUnreportedConnection,
+		chargingReportTempCollection:         chargingReportTempConnection,
+		chargingReportHistoryCollection:      chargingReportHistoryConnection,
 	}
 }
 
@@ -464,7 +479,6 @@ func (db *batteryRepository) GetLast24hoursUnreportedData() ([]models.Last24Hour
 	rawDataCollection := Mclient.Database(remote).Collection("bms_rawdata")
 	ref := 1
 	batteryData := []models.Last24HourUnreportedSpecificData{}
-	//mp := map[string][]bson.M{}
 	currentTime := time.Now().UTC()
 	for ref <= 24 {
 		if ref == 1 {
@@ -472,7 +486,6 @@ func (db *batteryRepository) GetLast24hoursUnreportedData() ([]models.Last24Hour
 			data, _ := QueryHelperFor24HourUnreported(from, currentTime, rawDataCollection)
 			ref++
 			hourFormat := currentTime.Format("15:04:05")
-			//mp[hourFormat] = data
 			temp := models.Last24HourUnreportedSpecificData{
 				Time:    hourFormat,
 				UTCTime: primitive.NewDateTimeFromTime(currentTime),
@@ -487,7 +500,6 @@ func (db *batteryRepository) GetLast24hoursUnreportedData() ([]models.Last24Hour
 			to := currentTime.Add(time.Duration(-toint) * time.Hour)
 			data, _ := QueryHelperFor24HourUnreported(from, to, rawDataCollection)
 			hourFormat := to.Format("15:04:05")
-			//mp[hourFormat] = data
 			temp := models.Last24HourUnreportedSpecificData{
 				Time:    hourFormat,
 				UTCTime: primitive.NewDateTimeFromTime(to),
@@ -541,9 +553,7 @@ func QueryHelperFor24HourUnreported(from, to time.Time, rawDataCollection *mongo
 func (db *batteryRepository) GetBatteryCount() (int64, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
-	count, countErr := db.batteryMainConnection.EstimatedDocumentCount(ctx)
-	return count, countErr
-
+	return db.batteryMainConnection.EstimatedDocumentCount(ctx)
 }
 
 func (db *batteryRepository) InsertLast24HourUnreported(data models.Last24HourUnreported) error {
@@ -559,5 +569,186 @@ func (db *batteryRepository) DeleteAllLast24HourUnreported() error {
 	defer cancel()
 
 	_, err := db.battery24HourUnreportedCollection.DeleteMany(ctx, bson.M{})
+	return err
+}
+
+// charging reports
+
+// check charging cycle already started for bmsID
+func (db *batteryRepository) CheckChargingCycleStartOrNot(bmsId string) models.StartChargingReport {
+	filter := bson.D{
+		bson.E{Key: "bms_id", Value: bmsId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+	var startChargingReport models.StartChargingReport
+	db.chargingReportTempCollection.FindOne(ctx, filter).Decode(&startChargingReport)
+	return startChargingReport
+}
+
+// get all end cycle from temp
+func (db *batteryRepository) GetCurrentCycleEnd() ([]models.ChargingReport, error) {
+
+	filter := bson.D{
+		bson.E{Key: "is_start", Value: true},
+		bson.E{Key: "is_end", Value: true},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	cursor, curErr := db.chargingReportTempCollection.Find(ctx, filter)
+
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	var chargingReports []models.ChargingReport
+
+	if err := cursor.All(context.TODO(), &chargingReports); err != nil {
+		return nil, err
+	}
+
+	return chargingReports, nil
+}
+
+// making a start charging report
+func (db *batteryRepository) StartChargingReport(batteryData []models.StartChargingReport) error {
+	var operations []mongo.WriteModel
+
+	for i := range batteryData {
+		optionsA := mongo.NewUpdateOneModel()
+
+		optionsA.SetFilter(bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i].BMSID},
+		})
+
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "asset", Value: batteryData[i].Asset},
+				bson.E{Key: "imei", Value: batteryData[i].IMEI},
+				bson.E{Key: "start_time", Value: batteryData[i].StartTime},
+				bson.E{Key: "start_soc", Value: batteryData[i].StartSOC},
+				bson.E{Key: "is_start", Value: batteryData[i].IsStart},
+			}},
+		}
+
+		optionsA.SetUpdate(update)
+		optionsA.SetUpsert(true)
+
+		operations = append(operations, optionsA)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	_, err := db.chargingReportTempCollection.BulkWrite(context.TODO(), operations)
+	return err
+}
+
+// making a end charging report
+func (db *batteryRepository) EndChargingReport(batteryData []models.EndChargingReport) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	operation := []mongo.WriteModel{}
+
+	for i := range batteryData {
+		optionA := mongo.NewUpdateOneModel()
+
+		filter := bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i].BMSID},
+		}
+
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "end_time", Value: batteryData[i].EndTime},
+				bson.E{Key: "end_soc", Value: batteryData[i].EndSOC},
+				bson.E{Key: "is_end", Value: batteryData[i].IsEnd},
+			}},
+		}
+
+		optionA.SetFilter(filter)
+		optionA.SetUpdate(update)
+
+		operation = append(operation, optionA)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	_, err := db.chargingReportTempCollection.BulkWrite(ctx, operation)
+	return err
+}
+
+// delete all charging temp report
+func (db *batteryRepository) DeleteChargingTempReport(bmsIDs []string) error {
+	filter := bson.D{
+		bson.E{Key: "bms_id", Value: bson.D{
+			bson.E{Key: "$in", Value: bmsIDs},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.chargingReportTempCollection.DeleteMany(ctx, filter)
+	return err
+}
+
+// create a charging report history after complete one cycle temp to history
+func (db *batteryRepository) CreateChargingReportHistory(batteryData []models.ChargingReport) error {
+	operation := []mongo.WriteModel{}
+
+	for i := range batteryData {
+		optionA := mongo.NewInsertOneModel()
+		optionA.SetDocument(batteryData[i])
+
+		operation = append(operation, optionA)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.chargingReportHistoryCollection.BulkWrite(ctx, operation)
+	return err
+}
+
+// update old battery current in battery main to refer a start or end cycle
+func (db *batteryRepository) UpdateBatteryCurrentInMain(oldCurrentData []models.UpdateOldCurrent) error {
+	operation := []mongo.WriteModel{}
+
+	for i := range oldCurrentData {
+		optionA := mongo.NewUpdateOneModel()
+
+		filter := bson.D{
+			bson.E{Key: "bms_id", Value: oldCurrentData[i].BMSID},
+		}
+
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "old_battery_current", Value: oldCurrentData[i].OldCurrent},
+			}},
+		}
+
+		optionA.SetFilter(filter)
+		optionA.SetUpdate(update)
+		optionA.SetUpsert(true)
+
+		operation = append(operation, optionA)
+	}
+
+	bulkOption := options.BulkWriteOptions{}
+	bulkOption.SetOrdered(true)
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.batteryMainConnection.BulkWrite(ctx, operation)
+
 	return err
 }

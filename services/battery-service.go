@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"time"
 
@@ -21,6 +22,8 @@ type BatteryService interface {
 
 	UpdateLastSevenHourUnReported() error
 	UpdateLast24HourUnreported() error
+
+	CheckForBatteryChargingReport([]models.BatteryHardwareMain) error
 }
 
 type batteryService struct {
@@ -198,4 +201,132 @@ func (ser *batteryService) GetUnreportedForOneHour() (map[string]int64, error) {
 	}
 	close(allBattery)
 	return res, nil
+}
+
+// battery charging report check
+func (ser *batteryService) CheckForBatteryChargingReport(batteryData []models.BatteryHardwareMain) error {
+	// check old and current battery current and store it another model list for next operations
+	var newBatteryData []models.BatteryHardwareMain
+
+	for i := range batteryData {
+		if batteryData[i].OldBatteryCurrent != batteryData[i].BatteryCurrent {
+			newBatteryData = append(newBatteryData, batteryData[i])
+		}
+	}
+
+	// check for trip is start or end do implementation accordingly
+	err := ser.CheckBatteryCurrentCycleStartOrEnd(newBatteryData)
+
+	return err
+}
+
+// check for cycle started or ended with the help of temp collection
+func (ser *batteryService) CheckBatteryCurrentCycleStartOrEnd(batteryData []models.BatteryHardwareMain) error {
+	var startCycleBattery, endCycleBattery, updateOldBatteryCurrent = []models.StartChargingReport{}, []models.EndChargingReport{}, []models.UpdateOldCurrent{}
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// prepare to update old current in battery main
+	go func() {
+		defer wg.Done()
+		temp := new(models.UpdateOldCurrent).SetUpdateOldCurrent(batteryData)
+		updateOldBatteryCurrent = append(updateOldBatteryCurrent, temp...)
+	}()
+
+	// checking all bmsid one by one
+	for i := range batteryData {
+		startChargingReport := ser.batteryRepo.CheckChargingCycleStartOrNot(batteryData[i].BmsID)
+
+		// check for start
+		if (startChargingReport == models.StartChargingReport{}) {
+			newStartChargingReport := new(models.StartChargingReport).SetStartChargingReport(batteryData[i])
+			// store all battery for start current cycle
+			startCycleBattery = append(startCycleBattery, newStartChargingReport)
+
+		} else {
+			endChargingReport := new(models.EndChargingReport).SetEndChargingReport(batteryData[i])
+
+			// store all battery for end current cycle
+			endCycleBattery = append(endCycleBattery, endChargingReport)
+		}
+	}
+
+	// prepare and do a start current cycle
+	_ = ser.batteryRepo.StartChargingReport(startCycleBattery)
+	// go func() {
+	// 	defer wg.Done()
+	// 	fmt.Println("Send data to start charging Report....")
+	// 	err := ser.batteryRepo.StartChargingReport(startCycleBattery)
+	// 	fmt.Println("Cycle Start Error : ", err)
+	// }()
+
+	// prepare and do a end current cycle
+
+	// end the cycle first in temp c
+	endErr := ser.batteryRepo.EndChargingReport(endCycleBattery)
+	fmt.Println("Cycle End Error : ", endErr)
+
+	// get all cycle end cycle battery
+	chargingReport, fetErr := ser.batteryRepo.GetCurrentCycleEnd()
+	fmt.Println("Fetch all end cycle error : ", fetErr)
+
+	// create a current cycle history
+	hisErr := ser.batteryRepo.CreateChargingReportHistory(chargingReport)
+	fmt.Println("Create current cycle history error : ", hisErr)
+
+	// store only all bms id for remove temp data
+	bmsIDS := []string{}
+	for i := range chargingReport {
+		bmsIDS = append(bmsIDS, chargingReport[i].BMSID)
+	}
+
+	// once history created remove all data from temp
+	delErr := ser.batteryRepo.DeleteChargingTempReport(bmsIDS)
+	fmt.Println("Delete current cycle temp data error : ", delErr)
+
+	// go func() {
+	// 	defer wg.Done()
+	// 	fmt.Println("Send data to end charging Report.....")
+
+	// 	// end the cycle first in temp c
+	// 	fmt.Println("ending the cycle first...")
+	// 	err := ser.batteryRepo.EndChargingReport(endCycleBattery)
+	// 	fmt.Println("Cycle End Error : ", err)
+	// 	fmt.Println("Cycle has been ended...")
+
+	// 	// get all cycle end cycle battery
+	// 	fmt.Println("fetching all end cycle battery..")
+	// 	chargingReport, fetErr := ser.batteryRepo.GetCurrentCycleEnd()
+	// 	fmt.Println("Fetch all end cycle error : ", fetErr)
+	// 	fmt.Println("fetched all end cycle battery..")
+
+	// 	// create a current cycle history
+	// 	fmt.Println("Send data to create a current cycle history....")
+	// 	hisErr := ser.batteryRepo.CreateChargingReportHistory(chargingReport)
+	// 	fmt.Println("Create current cycle history error : ", hisErr)
+	// 	fmt.Println("Current cycle history has been created....")
+
+	// 	// store only all bms id for remove temp data
+	// 	fmt.Println("Storing all bms id's started....")
+	// 	bmsIDS := []string{}
+	// 	for i := range chargingReport {
+	// 		bmsIDS = append(bmsIDS, chargingReport[i].BMSID)
+	// 	}
+	// 	fmt.Println("Storing all bms id's ended....")
+
+	// 	// once history created remove all data from temp
+	// 	fmt.Println("Send data to delete all data from temp started....")
+	// 	delErr := ser.batteryRepo.DeleteChargingTempReport(bmsIDS)
+	// 	fmt.Println("Delete current cycle temp data error : ", delErr)
+	// 	fmt.Println("Send data to delete all data from temp ended....")
+
+	// }()
+	fmt.Println("Waiting for goroutine done")
+	wg.Wait()
+
+	// for every start or end we have to update battery old current with latest battery current
+	upErr := ser.batteryRepo.UpdateBatteryCurrentInMain(updateOldBatteryCurrent)
+	fmt.Println("Update old battery current in main error : ", upErr)
+
+	return nil
 }

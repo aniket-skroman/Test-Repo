@@ -984,6 +984,9 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 			bson.E{Key: "old_cycle_count", Value: 1},
 			bson.E{Key: "location_latitude", Value: 1},
 			bson.E{Key: "location_longitude", Value: 1},
+			bson.E{Key: "old_battery_current", Value: 1},
+			bson.E{Key: "battery_current", Value: 1},
+			bson.E{Key: "battery_soc", Value: 1},
 		},
 	)
 	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{}, opts)
@@ -996,15 +999,9 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 	if err := cursor.All(context.TODO(), &batteryData); err != nil {
 		return nil, err
 	}
-	newCycleReport := []models.BatteryHardwareMain{}
 
-	for i := range batteryData {
-		if batteryData[i].BatteryCycleCount != batteryData[i].OldCycleCount {
-			newCycleReport = append(newCycleReport, batteryData[i])
-		}
-	}
 	fmt.Println("Returning from repo.....")
-	return newCycleReport, nil
+	return batteryData, nil
 }
 
 //update current cycle count to old count
@@ -1071,22 +1068,6 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 			cycleStartOption.SetUpdate(update)
 			cycleStartOption.SetUpsert(true)
 
-			//start cycle
-			// cycleStart := models.CreateCycleBasedReport{}
-			// cycleStart.BMSID = batteryData[i].BmsID
-			// cycleStart.Asset = batteryData[i].BmsID
-			// cycleStart.IsStart = true
-			// cycleStart.StartTime = primitive.NewDateTimeFromTime(time.Now())
-			// cycleStart.CycleNo = batteryData[i].BatteryCycleCount
-
-			// tempRes, tempErr := db.batteryCycleTempReportConnection.InsertOne(context.TODO(), cycleStart)
-			// if tempErr != nil {
-			// 	fmt.Println("Error occur : ", tempErr)
-			// 	continue
-			// }
-
-			// fmt.Println("Temp Report Connection : ", tempRes.InsertedID)
-
 			batteryDistanceOption := mongo.NewUpdateOneModel()
 
 			locationData := models.LocationData{
@@ -1109,15 +1090,6 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 			cycleStartOperation = append(cycleStartOperation, cycleStartOption)
 			batteryDistanceOperation = append(batteryDistanceOperation, batteryDistanceOption)
 
-			//create battery location db
-			// distanceTravel := new(models.BatteryDistanceTravelled)
-
-			// distanceTravel.BMSID = cycleStart.BMSID
-			// distanceTravel.Location = append(distanceTravel.Location, locationData)
-			// distanceTravel.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
-
-			// res, err := db.batteryCycleLocationConnection.InsertOne(context.TODO(), distanceTravel)
-			// fmt.Println("Create Temp Report Error : ", err, " temp report inserted id : ", res.InsertedID)
 		} else {
 			var totalSpeed int
 			var avgSpeed int
