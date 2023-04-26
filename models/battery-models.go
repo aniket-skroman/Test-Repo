@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -65,6 +67,7 @@ type BatteryHardwareMain struct {
 	LocalTime                 string             `json:"local_time" bson:"local_t"`
 	ISOTimeStamp              string             `json:"iso_timestamp" bson:"iso_timestamp"`
 	OldCycleCount             int                `json:"old_cycle_count" bson:"old_cycle_count"`
+	OldBatteryCurrent         int                `json:"old_battery_current" bson:"old_battery_current"`
 	MinMaxSoc                 []int              `json:"min_max_soc" bson:"min_max_soc"`
 	SpeedCal                  []int              `json:"speed_cal" bson:"speed_cal"`
 }
@@ -134,4 +137,80 @@ type Last24HourUnreportedSpecificData struct {
 	Time    string             `json:"time" bson:"time"`
 	UTCTime primitive.DateTime `json:"utc_time" bson:"utc_time"`
 	Data    []bson.M           `json:"data" bson:"data"`
+}
+
+type StartChargingReport struct {
+	ID        primitive.ObjectID `json:"id" bson:"_id"`
+	BMSID     string             `json:"bms_id" bson:"bms_id"`
+	Asset     string             `json:"asset" bson:"asset"`
+	IMEI      string             `json:"imei" bson:"imei"`
+	StartTime primitive.DateTime `json:"start_time" bson:"start_time"`
+	StartSOC  int                `json:"start_soc" bson:"start_soc"`
+	IsStart   bool               `json:"is_start" bson:"is_start"`
+}
+
+func (startCharge *StartChargingReport) SetStartChargingReport(moduleData BatteryHardwareMain) StartChargingReport {
+	newStartCharging := new(StartChargingReport)
+
+	newStartCharging.BMSID = moduleData.BmsID
+	newStartCharging.Asset = moduleData.BmsID
+	newStartCharging.IMEI = moduleData.Imei
+	newStartCharging.StartTime = primitive.NewDateTimeFromTime(time.Now())
+	newStartCharging.StartSOC = moduleData.BatterySoc
+	newStartCharging.IsStart = true
+
+	return *newStartCharging
+}
+
+type EndChargingReport struct {
+	BMSID   string             `json:"bms_id" bson:"bms_id"`
+	EndTime primitive.DateTime `json:"end_time" bson:"end_time"`
+	EndSOC  int                `json:"end_soc" bson:"end_soc"`
+	IsEnd   bool               `json:"is_end" bson:"is_end"`
+}
+
+func (endCharge *EndChargingReport) SetEndChargingReport(moduleData BatteryHardwareMain) EndChargingReport {
+	endChargeReport := new(EndChargingReport)
+
+	endChargeReport.BMSID = moduleData.BmsID
+	endChargeReport.EndTime = primitive.NewDateTimeFromTime(time.Now())
+	endChargeReport.EndSOC = moduleData.BatterySoc
+	endChargeReport.IsEnd = true
+
+	return *endChargeReport
+}
+
+type ChargingReport struct {
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	BMSID     string             `json:"bms_id" bson:"bms_id"`
+	Asset     string             `json:"asset" bson:"asset"`
+	IMEI      string             `json:"imei" bson:"imei"`
+	StartTime primitive.DateTime `json:"start_time" bson:"start_time"`
+	EndTime   primitive.DateTime `json:"end_time" bson:"end_time"`
+	StartSOC  int                `json:"start_soc" bson:"start_soc"`
+	EndSOC    int                `json:"end_soc" bson:"end_soc"`
+	IsStart   bool               `json:"is_start" bson:"is_start"`
+	IsEnd     bool               `json:"is_end" bson:"is_end"`
+	CreatedAt primitive.DateTime `json:"created_at" bson:"created_at"`
+}
+
+// to update a old battery current in battery main
+type UpdateOldCurrent struct {
+	BMSID      string
+	OldCurrent int
+}
+
+func (oldCurrent *UpdateOldCurrent) SetUpdateOldCurrent(moduleData []BatteryHardwareMain) []UpdateOldCurrent {
+	newUpdateOldCurrent := []UpdateOldCurrent{}
+
+	for i := range moduleData {
+		temp := UpdateOldCurrent{
+			BMSID:      moduleData[i].BmsID,
+			OldCurrent: moduleData[i].BatteryCurrent,
+		}
+
+		newUpdateOldCurrent = append(newUpdateOldCurrent, temp)
+	}
+
+	return newUpdateOldCurrent
 }
