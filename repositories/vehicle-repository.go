@@ -987,6 +987,7 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 			bson.E{Key: "old_battery_current", Value: 1},
 			bson.E{Key: "battery_current", Value: 1},
 			bson.E{Key: "battery_soc", Value: 1},
+			bson.E{Key: "imei", Value: 1},
 		},
 	)
 	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{}, opts)
