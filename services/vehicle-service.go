@@ -252,30 +252,28 @@ func (s *vehicleservice) CheckForBatteryCycle() error {
 	if err != nil {
 		return err
 	}
-	//fmt.Println("len of battery data : ", len(batteryData))
-	s.batteryService.CheckForBatteryChargingReport(batteryData)
-	// var wg sync.WaitGroup
-	// wg.Add(1)
+	fmt.Println("len of battery data : ", len(batteryData))
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-	// work for battery charge report
-	// go func() {
-	// 	defer wg.Done()
-	// 	s.batteryService.CheckForBatteryChargingReport(batteryData)
-	// }()
+	//work for battery charge report
+	go func() {
+		defer wg.Done()
+		s.batteryService.CheckForBatteryChargingReport(batteryData)
+	}()
 
 	// prepare for Cycle based report, Charging Report
-	// var newCycleReport = []models.BatteryHardwareMain{}
+	var newCycleReport = []models.BatteryHardwareMain{}
 
-	// for i := range batteryData {
-	// 	if batteryData[i].BatteryCycleCount != batteryData[i].OldCycleCount {
-	// 		newCycleReport = append(newCycleReport, batteryData[i])
-	// 	}
+	for i := range batteryData {
+		if batteryData[i].BatteryCycleCount != batteryData[i].OldCycleCount {
+			newCycleReport = append(newCycleReport, batteryData[i])
+		}
 
-	// }
+	}
 
-	// fmt.Println("Battery len : ", len(newCycleReport))
-	// wg.Wait()
-	return nil
-
-	// return s.vehicleRepository.UpdateBatteryCycle(newCycleReport)
+	fmt.Println("Battery len : ", len(newCycleReport))
+	upErr := s.vehicleRepository.UpdateBatteryCycle(newCycleReport)
+	wg.Wait()
+	return upErr
 }

@@ -209,7 +209,12 @@ func (ser *batteryService) CheckForBatteryChargingReport(batteryData []models.Ba
 	var newBatteryData []models.BatteryHardwareMain
 
 	for i := range batteryData {
-		if batteryData[i].OldBatteryCurrent != batteryData[i].BatteryCurrent {
+		var oldCurrent, latestCurrent int
+		oldCurrent = batteryData[i].OldBatteryCurrent
+		latestCurrent = batteryData[i].BatteryCurrent
+		if (oldCurrent < 0 && latestCurrent < 0) && (oldCurrent > 0 && latestCurrent > 0) {
+			continue
+		} else if oldCurrent != latestCurrent {
 			newBatteryData = append(newBatteryData, batteryData[i])
 		}
 	}
