@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"sync"
 	"time"
 
 	dbconfig "github.com/aniket0951/testproject/db-config"
@@ -988,6 +989,8 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 			bson.E{Key: "battery_current", Value: 1},
 			bson.E{Key: "battery_soc", Value: 1},
 			bson.E{Key: "imei", Value: 1},
+			bson.E{Key: "min_max_soc", Value: 1},
+			bson.E{Key: "speed_cal", Value: 1},
 		},
 	)
 	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{}, opts)
@@ -1038,6 +1041,16 @@ func (db *vehiclerepository) UpdateCycleOldCycleCount(batteryData []models.Batte
 func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHardwareMain) error {
 	var bmsIDS []string
 	var cycleStartOperation, batteryDistanceOperation []mongo.WriteModel
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// update battery old cycle count every time when ever cycle get started and ended
+		temp := new(models.UpdateOldCycleCount).SetUpdateOldCycleCount(batteryData)
+		err := db.UpdateBatteryCycleOldCount(temp)
+		fmt.Println(err)
+	}()
+
 	for i := range batteryData {
 
 		filter := bson.D{
@@ -1052,7 +1065,7 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 		db.batteryCycleTempReportConnection.FindOne(ctx, filter).Decode(&batteryCycle)
 
 		if (batteryCycle == models.CreateCycleBasedReport{}) {
-
+			fmt.Println("Preparing to start a cycle for : ", batteryData[i].BmsID)
 			cycleStartOption := mongo.NewUpdateOneModel()
 
 			update := bson.D{
@@ -1092,6 +1105,7 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 			batteryDistanceOperation = append(batteryDistanceOperation, batteryDistanceOption)
 
 		} else {
+			fmt.Println("Preparing to end a cycle for : ", batteryData[i].BmsID)
 			var totalSpeed int
 			var avgSpeed int
 			var topSpeed int = -100000000
@@ -1133,6 +1147,7 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 
 			// km calculater
 			if topSpeedChanged && lowSpeedChanged && minSocChanged && maxSocChanged {
+				fmt.Println("Preparing a for create cycle history...")
 				kmT, _ := db.GetBatteryCycleLocations(batteryCycle.BMSID)
 				batteryCycle.KMTravelled = kmT
 				batteryCycle.MinSoc = minSoc
@@ -1144,23 +1159,32 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 				batteryCycle.IsEnd = true
 
 				// create cycle history
-				db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
-
+				res, err := db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
+				fmt.Println("Error from history created : ", err, " and result : ", res.InsertedID)
 				// remove cycle temp data
 				db.RemoveCycleTempData(batteryCycle.BMSID)
 
 				bmsIDS = append(bmsIDS, batteryData[i].BmsID)
+			} else {
+				fmt.Println("Failed to prepare a to create a history with bms id : ", batteryData[i].BmsID)
 			}
 		}
 	}
 
+	fmt.Println("Sending a bulk data for start the cycle...")
 	cycleStartErr := db.StartNewBatteryCycle(cycleStartOperation)
+	fmt.Println("Cycle start Error : ", cycleStartErr)
+
+	fmt.Println("Sending a bulk data for storing a battery location....")
 	createLocationErr := db.CreateBatteryLocationData(batteryDistanceOperation)
+	fmt.Println("Cycle location stored error : ", createLocationErr)
 
-	fmt.Println("Cycle start Error : ", cycleStartErr, " and create location data Error : ", createLocationErr)
+	// updating a min max soc array and speed cal array after ending the cycle
+	fmt.Println("Sending data to set a empty array to min max soc and speed cal array....")
+	upMainErr := db.UpdateBatteryCycleDataInBatteryMain(bmsIDS)
+	fmt.Println("Update min max soc and speed cal array error : ", upMainErr)
 
-	db.UpdateBatteryCycleDataInBatteryMain(bmsIDS)
-
+	wg.Wait()
 	return nil
 
 }
@@ -1175,7 +1199,7 @@ func (db *vehiclerepository) StartNewBatteryCycle(operations []mongo.WriteModel)
 	return err
 }
 
-// create  a battery location data
+// create  a battery location data to find a KM for all cycle
 func (db *vehiclerepository) CreateBatteryLocationData(operations []mongo.WriteModel) error {
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
@@ -1240,6 +1264,7 @@ func (db *vehiclerepository) RemoveCycleTempData(bmsID string) error {
 	return nil
 }
 
+// update and set empty array to min max soc and speed cal in main
 func (db *vehiclerepository) UpdateBatteryCycleDataInBatteryMain(bmsIDS []string) error {
 
 	operations := []mongo.WriteModel{}
@@ -1268,6 +1293,38 @@ func (db *vehiclerepository) UpdateBatteryCycleDataInBatteryMain(bmsIDS []string
 
 	_, err := db.batteryMainConnection.BulkWrite(context.TODO(), operations)
 	fmt.Println("Update Battery Cycle Data In Battery Main Inserted Count : ")
+	return err
+}
+
+// update old battery count in main to refer start / end cycle
+func (db *vehiclerepository) UpdateBatteryCycleOldCount(batteryData []models.UpdateOldCycleCount) error {
+	operations := []mongo.WriteModel{}
+
+	for i := range batteryData {
+		optionA := mongo.NewUpdateOneModel()
+
+		filter := bson.D{
+			bson.E{Key: "bms_id", Value: batteryData[i].BmsID},
+		}
+
+		update := bson.D{
+			bson.E{Key: "$set", Value: bson.D{
+				bson.E{Key: "old_cycle_count", Value: batteryData[i].OldCycleCount},
+			}},
+		}
+
+		optionA.SetFilter(filter)
+		optionA.SetUpdate(update)
+		optionA.SetUpsert(true)
+
+		operations = append(operations, optionA)
+	}
+
+	bulkWriter := options.BulkWriteOptions{}
+	bulkWriter.SetOrdered(true)
+
+	res, err := db.batteryMainConnection.BulkWrite(context.TODO(), operations)
+	fmt.Println("Update Old Cycle Count Error : ", err, " and result : ", res)
 	return err
 }
 

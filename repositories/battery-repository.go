@@ -703,6 +703,7 @@ func (db *batteryRepository) CreateChargingReportHistory(batteryData []models.Ch
 
 	for i := range batteryData {
 		optionA := mongo.NewInsertOneModel()
+		batteryData[i].CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 		optionA.SetDocument(batteryData[i])
 
 		operation = append(operation, optionA)

@@ -194,10 +194,16 @@ type ChargingReport struct {
 	CreatedAt primitive.DateTime `json:"created_at" bson:"created_at"`
 }
 
+func (chargeReport *ChargingReport) SetChargingReport() ChargingReport {
+	charegingReport := new(ChargingReport)
+	charegingReport.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	return *charegingReport
+}
+
 // to update a old battery current in battery main
 type UpdateOldCurrent struct {
-	BMSID      string
-	OldCurrent int
+	BMSID      string `json:"bms_id" bson:"bms_id"`
+	OldCurrent int    `json:"old_battery_current" bson:"old_battery_current"`
 }
 
 func (oldCurrent *UpdateOldCurrent) SetUpdateOldCurrent(moduleData []BatteryHardwareMain) []UpdateOldCurrent {
@@ -207,6 +213,27 @@ func (oldCurrent *UpdateOldCurrent) SetUpdateOldCurrent(moduleData []BatteryHard
 		temp := UpdateOldCurrent{
 			BMSID:      moduleData[i].BmsID,
 			OldCurrent: moduleData[i].BatteryCurrent,
+		}
+
+		newUpdateOldCurrent = append(newUpdateOldCurrent, temp)
+	}
+
+	return newUpdateOldCurrent
+}
+
+// to update a old battery cycle count in battery main
+type UpdateOldCycleCount struct {
+	BmsID         string `json:"bms_id" bson:"bms_id"`
+	OldCycleCount int    `json:"old_cycle_count" bson:"old_cycle_count"`
+}
+
+func (oldCurrent *UpdateOldCycleCount) SetUpdateOldCycleCount(moduleData []BatteryHardwareMain) []UpdateOldCycleCount {
+	newUpdateOldCurrent := []UpdateOldCycleCount{}
+
+	for i := range moduleData {
+		temp := UpdateOldCycleCount{
+			BmsID:         moduleData[i].BmsID,
+			OldCycleCount: moduleData[i].BatteryCycleCount,
 		}
 
 		newUpdateOldCurrent = append(newUpdateOldCurrent, temp)
