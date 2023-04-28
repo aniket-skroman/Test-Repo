@@ -1084,9 +1084,11 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 
 			batteryDistanceOption := mongo.NewUpdateOneModel()
 
-			locationData := models.LocationData{
-				Latitude:  batteryData[i].LocationLatitude,
-				Longitude: batteryData[i].LocationLongitude,
+			locationData := []models.LocationData{
+				{
+					Latitude:  batteryData[i].LocationLatitude,
+					Longitude: batteryData[i].LocationLongitude,
+				},
 			}
 
 			distanceUpdate := bson.D{
@@ -1218,16 +1220,9 @@ func (db *vehiclerepository) GetBatteryCycleLocations(bmsID string) (float64, er
 		},
 	}
 
-	cursor, curErr := db.batteryCycleLocationConnection.Aggregate(context.TODO(), filter)
+	batteryData := models.BatteryDistanceTravelled{}
+	res := db.batteryCycleLocationConnection.FindOne(context.TODO(), filter).Decode(&batteryData)
 
-	if curErr != nil {
-		return 0, curErr
-	}
-	var batteryData models.BatteryDistanceTravelled
-
-	if err := cursor.All(context.TODO(), &batteryData); err != nil {
-		return 0, err
-	}
 	var totalKM float64
 	if len(batteryData.Location) > 0 {
 		prev := helper.Coordinates{
@@ -1248,8 +1243,10 @@ func (db *vehiclerepository) GetBatteryCycleLocations(bmsID string) (float64, er
 		}
 	}
 	//delete location after cycle completed
-	db.batteryCycleLocationConnection.DeleteOne(context.TODO(), filter)
-	return totalKM, nil
+	if res == nil {
+		db.batteryCycleLocationConnection.DeleteOne(context.TODO(), filter)
+	}
+	return totalKM / 1000, res
 }
 
 func (db *vehiclerepository) RemoveCycleTempData(bmsID string) error {
