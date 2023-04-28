@@ -272,7 +272,6 @@ func (s *vehicleservice) CheckForBatteryCycle() error {
 
 	}
 
-	fmt.Println("Battery len : ", len(newCycleReport))
 	upErr := s.vehicleRepository.UpdateBatteryCycle(newCycleReport)
 	wg.Wait()
 	return upErr
