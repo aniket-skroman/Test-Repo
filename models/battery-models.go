@@ -70,6 +70,7 @@ type BatteryHardwareMain struct {
 	OldBatteryCurrent         int                `json:"old_battery_current" bson:"old_battery_current"`
 	MinMaxSoc                 []int              `json:"min_max_soc" bson:"min_max_soc"`
 	SpeedCal                  []int              `json:"speed_cal" bson:"speed_cal"`
+	ODOMeter                  float64            `json:"odo_meter" bson:"odo_meter"`
 }
 
 type BMSIdList struct {
@@ -108,6 +109,9 @@ type CreateCycleBasedReport struct {
 	LowestSpeed int                `json:"lowest_speed" bson:"lowest_speed"`
 	IsStart     bool               `json:"is_start" bson:"is_start"`
 	IsEnd       bool               `json:"is_end" bson:"is_end"`
+	DOD         string             `json:"dod" bson:"dod"`
+	StartODO    float64            `json:"start_odo" bson:"start_odo"`
+	EndODO      float64            `json:"end_odo" bson:"end_odo"`
 	CreatedAt   primitive.DateTime `json:"created_at" bson:"created_at"`
 }
 
