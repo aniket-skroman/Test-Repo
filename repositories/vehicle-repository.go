@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -991,6 +992,7 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 			bson.E{Key: "imei", Value: 1},
 			bson.E{Key: "min_max_soc", Value: 1},
 			bson.E{Key: "speed_cal", Value: 1},
+			bson.E{Key: "odo_meter", Value: 1},
 		},
 	)
 	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{}, opts)
@@ -1075,6 +1077,7 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 					bson.E{Key: "is_start", Value: true},
 					bson.E{Key: "start_time", Value: primitive.NewDateTimeFromTime(time.Now())},
 					bson.E{Key: "cycle_no", Value: batteryData[i].BatteryCycleCount},
+					bson.E{Key: "start_odo", Value: batteryData[i].ODOMeter},
 				}},
 			}
 
@@ -1159,6 +1162,17 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 				batteryCycle.LowestSpeed = lowSpeed
 				batteryCycle.EndTime = primitive.NewDateTimeFromTime(time.Now())
 				batteryCycle.IsEnd = true
+
+				// set value to end odo meter take current ODOMeter
+				if batteryData[i].ODOMeter > 0 {
+					endODO := batteryData[i].ODOMeter / 1000
+					endODORes := endODO - kmT
+					batteryCycle.EndODO = endODORes
+				}
+
+				// set value to DOD using SOC
+				strSoc := strconv.Itoa(batteryData[i].BatterySoc)
+				batteryCycle.DOD = strSoc + "%"
 
 				// create cycle history
 				res, err := db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
