@@ -624,6 +624,7 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 		batteryStatus = batteryData[i].FormatSpeed()
 		chargingStatus = batteryData[i].GetBatteryCurrentStatus()
 		batterySOCData = batteryData[i].GetBatterySOCStatus()
+		locationAngel := batteryData[i].FormatLocationAngle()
 		fullChargeCapacity := batteryData[i].FormatByThousand(batteryData[i].BatteryFullChargeCapacity)
 		ratedCapacity := batteryData[i].FormatByThousand(batteryData[i].BatteryRatedCapacity)
 		ratedVoltage := batteryData[i].FormatByThousand(batteryData[i].BatteryRatedVoltage)
@@ -643,7 +644,7 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 				bson.E{Key: "location_longitude", Value: batteryData[i].LocationLongitude},
 				bson.E{Key: "location_latitude", Value: batteryData[i].LocationLatitude},
 				bson.E{Key: "location_speed", Value: batteryData[i].LocationSpeed},
-				bson.E{Key: "location_angle", Value: batteryData[i].LocationAngle},
+				bson.E{Key: "location_angle", Value: locationAngel},
 				bson.E{Key: "iot_temperature", Value: iotTemp},
 				bson.E{Key: "gprs_total_data_used", Value: batteryData[i].GprsTotalDataUsed},
 				bson.E{Key: "software_version", Value: batteryData[i].SoftwareVersion},
