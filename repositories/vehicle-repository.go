@@ -607,7 +607,6 @@ func (db *vehiclerepository) DeleteBatteryTemperatureAlert(batteryTempAlert []st
 }
 
 func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwareMain) error {
-	fmt.Println("Add battery run success..... with data : ", len(batteryData))
 	var operations []mongo.WriteModel
 
 	for i := range batteryData {
@@ -620,32 +619,17 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 		localDate := LocalTimeStamp[0]
 		localTime := LocalTimeStamp[1]
 
-		batterySpeed := batteryData[i].LocationSpeed
 		var batteryStatus, chargingStatus, batterySOCData string
 
-		if batterySpeed > 0 {
-			batteryStatus = "Moving"
-		} else {
-			batteryStatus = "Idle"
-		}
+		batteryStatus = batteryData[i].FormatSpeed()
+		chargingStatus = batteryData[i].GetBatteryCurrentStatus()
+		batterySOCData = batteryData[i].GetBatterySOCStatus()
+		fullChargeCapacity := batteryData[i].FormatByThousand(batteryData[i].BatteryFullChargeCapacity)
+		ratedCapacity := batteryData[i].FormatByThousand(batteryData[i].BatteryRatedCapacity)
+		ratedVoltage := batteryData[i].FormatByThousand(batteryData[i].BatteryRatedVoltage)
+		voltage := batteryData[i].FormatByThousand(batteryData[i].BatteryVoltage)
 
-		if batteryData[i].BatteryCurrent >= 0 {
-			chargingStatus = "Discharge"
-		} else {
-			chargingStatus = "Charge"
-		}
-
-		batterySOC := batteryData[i].BatterySoc
-
-		if batterySOC <= 25 {
-			batterySOCData = "Critical"
-		} else if batterySOC > 25 && batterySOC <= 40 {
-			batterySOCData = "Ok"
-		} else if batterySOC > 40 && batterySOC <= 60 {
-			batterySOCData = "Good"
-		} else {
-			batterySOCData = "Very Good"
-		}
+		iotTemp := batteryData[i].FormatByHundred(batteryData[i].IotTemperature)
 
 		update := bson.D{
 			bson.E{Key: "$set", Value: bson.D{
@@ -660,7 +644,7 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 				bson.E{Key: "location_latitude", Value: batteryData[i].LocationLatitude},
 				bson.E{Key: "location_speed", Value: batteryData[i].LocationSpeed},
 				bson.E{Key: "location_angle", Value: batteryData[i].LocationAngle},
-				bson.E{Key: "iot_temperature", Value: batteryData[i].IotTemperature},
+				bson.E{Key: "iot_temperature", Value: iotTemp},
 				bson.E{Key: "gprs_total_data_used", Value: batteryData[i].GprsTotalDataUsed},
 				bson.E{Key: "software_version", Value: batteryData[i].SoftwareVersion},
 				bson.E{Key: "bms_software_version", Value: batteryData[i].BmsSoftwareVersion},
@@ -668,15 +652,15 @@ func (db *vehiclerepository) AddBatteryToMain(batteryData []models.BatteryHardwa
 				bson.E{Key: "imei", Value: batteryData[i].Imei},
 				bson.E{Key: "gprs_apn", Value: batteryData[i].GprsApn},
 				bson.E{Key: "is_first_fill", Value: true},
-				bson.E{Key: "battery_voltage", Value: batteryData[i].BatteryVoltage},
+				bson.E{Key: "battery_voltage", Value: voltage},
 				bson.E{Key: "battery_current", Value: batteryData[i].BatteryCurrent},
 				bson.E{Key: "battery_soc", Value: batteryData[i].BatterySoc},
 				bson.E{Key: "battery_temperature", Value: batteryData[i].BatteryTemperature},
 				bson.E{Key: "battery_remaining_capacity", Value: batteryData[i].BatteryRemainingCapacity},
-				bson.E{Key: "battery_full_charge_capacity", Value: batteryData[i].BatteryFullChargeCapacity},
+				bson.E{Key: "battery_full_charge_capacity", Value: fullChargeCapacity},
 				bson.E{Key: "battery_cycle_count", Value: batteryData[i].BatteryCycleCount},
-				bson.E{Key: "battery_rated_capacity", Value: batteryData[i].BatteryRatedCapacity},
-				bson.E{Key: "battery_rated_voltage", Value: batteryData[i].BatteryRatedVoltage},
+				bson.E{Key: "battery_rated_capacity", Value: ratedCapacity},
+				bson.E{Key: "battery_rated_voltage", Value: ratedVoltage},
 				bson.E{Key: "battery_version", Value: batteryData[i].BatteryVersion},
 				bson.E{Key: "battery_manufacture_date", Value: batteryData[i].BatteryManufactureDate},
 				bson.E{Key: "battery_manufacture_name", Value: batteryData[i].BatteryManufactureName},
