@@ -108,12 +108,17 @@ func (batteryMain *BatteryHardwareMain) GetBatterySOCStatus() string {
 	}
 }
 
-func (batteryMain *BatteryHardwareMain) FormatByThousand(formatValue int) int {
-	return formatValue / 1000
+func (batteryMain *BatteryHardwareMain) FormatByThousand(formatValue int) float64 {
+	return float64(formatValue) / 1000
 }
 
-func (batteryMain *BatteryHardwareMain) FormatByHundred(formatValue int) int {
-	return formatValue / 100
+func (batteryMain *BatteryHardwareMain) FormatByHundred(formatValue int) float64 {
+	return float64(formatValue) / 100
+}
+
+func (batteryMain *BatteryHardwareMain) FormatLocationAngle() float64 {
+	temp := float64(batteryMain.LocationAngle) / 100
+	return temp
 }
 
 type BMSIdList struct {
