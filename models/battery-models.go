@@ -73,6 +73,49 @@ type BatteryHardwareMain struct {
 	ODOMeter                  float64            `json:"odo_meter" bson:"odo_meter"`
 }
 
+func (batteryMain *BatteryHardwareMain) FormatSpeed() string {
+	speed := batteryMain.LocationSpeed
+
+	if speed > 0 {
+		return "Moving"
+	} else {
+		return "Idle"
+	}
+}
+
+func (batteryMain *BatteryHardwareMain) GetBatteryCurrentStatus() string {
+	current := batteryMain.BatteryCurrent
+
+	if current >= 0 {
+		return "Discharge"
+	} else {
+		return "Charge"
+	}
+}
+
+func (batteryMain *BatteryHardwareMain) GetBatterySOCStatus() string {
+	batterySOC := batteryMain.BatterySoc
+
+	switch {
+	case batterySOC <= 25:
+		return "Critical"
+	case batterySOC > 25 && batterySOC <= 40:
+		return "Ok"
+	case batterySOC > 40 && batterySOC <= 60:
+		return "Good"
+	default:
+		return "Very Good"
+	}
+}
+
+func (batteryMain *BatteryHardwareMain) FormatByThousand(formatValue int) int {
+	return formatValue / 1000
+}
+
+func (batteryMain *BatteryHardwareMain) FormatByHundred(formatValue int) int {
+	return formatValue / 100
+}
+
 type BMSIdList struct {
 	BMSID []string `json:"bms_id" bson:"bms_id"`
 }
