@@ -252,7 +252,6 @@ func (s *vehicleservice) CheckForBatteryCycle() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("len of battery data : ", len(batteryData))
 	var wg sync.WaitGroup
 	wg.Add(1)
 

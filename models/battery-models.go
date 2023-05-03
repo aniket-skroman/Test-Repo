@@ -152,7 +152,7 @@ type CreateCycleBasedReport struct {
 	KMTravelled float64            `json:"km_travelled" bson:"km_travelled"`
 	MinSoc      int                `json:"min_soc" bson:"min_soc"`
 	MaxSoc      int                `json:"max_soc" bson:"max_soc"`
-	AvgSpeed    int                `json:"avg_speed" bson:"avg_speed"`
+	AvgSpeed    float64            `json:"avg_speed" bson:"avg_speed"`
 	TopSpeed    int                `json:"top_speed" bson:"top_speed"`
 	LowestSpeed int                `json:"lowest_speed" bson:"lowest_speed"`
 	IsStart     bool               `json:"is_start" bson:"is_start"`
@@ -192,13 +192,14 @@ type Last24HourUnreportedSpecificData struct {
 }
 
 type StartChargingReport struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id"`
-	BMSID     string             `json:"bms_id" bson:"bms_id"`
-	Asset     string             `json:"asset" bson:"asset"`
-	IMEI      string             `json:"imei" bson:"imei"`
-	StartTime primitive.DateTime `json:"start_time" bson:"start_time"`
-	StartSOC  int                `json:"start_soc" bson:"start_soc"`
-	IsStart   bool               `json:"is_start" bson:"is_start"`
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	BMSID        string             `json:"bms_id" bson:"bms_id"`
+	Asset        string             `json:"asset" bson:"asset"`
+	IMEI         string             `json:"imei" bson:"imei"`
+	StartTime    primitive.DateTime `json:"start_time" bson:"start_time"`
+	StartSOC     int                `json:"start_soc" bson:"start_soc"`
+	StartCurrent int                `json:"start_current" bson:"start_current"`
+	IsStart      bool               `json:"is_start" bson:"is_start"`
 }
 
 func (startCharge *StartChargingReport) SetStartChargingReport(moduleData BatteryHardwareMain) StartChargingReport {
@@ -209,16 +210,18 @@ func (startCharge *StartChargingReport) SetStartChargingReport(moduleData Batter
 	newStartCharging.IMEI = moduleData.Imei
 	newStartCharging.StartTime = primitive.NewDateTimeFromTime(time.Now())
 	newStartCharging.StartSOC = moduleData.BatterySoc
+	newStartCharging.StartCurrent = moduleData.BatteryCurrent
 	newStartCharging.IsStart = true
 
 	return *newStartCharging
 }
 
 type EndChargingReport struct {
-	BMSID   string             `json:"bms_id" bson:"bms_id"`
-	EndTime primitive.DateTime `json:"end_time" bson:"end_time"`
-	EndSOC  int                `json:"end_soc" bson:"end_soc"`
-	IsEnd   bool               `json:"is_end" bson:"is_end"`
+	BMSID      string             `json:"bms_id" bson:"bms_id"`
+	EndTime    primitive.DateTime `json:"end_time" bson:"end_time"`
+	EndSOC     int                `json:"end_soc" bson:"end_soc"`
+	EndCurrent int                `json:"end_current" bson:"end_current"`
+	IsEnd      bool               `json:"is_end" bson:"is_end"`
 }
 
 func (endCharge *EndChargingReport) SetEndChargingReport(moduleData BatteryHardwareMain) EndChargingReport {
@@ -227,6 +230,7 @@ func (endCharge *EndChargingReport) SetEndChargingReport(moduleData BatteryHardw
 	endChargeReport.BMSID = moduleData.BmsID
 	endChargeReport.EndTime = primitive.NewDateTimeFromTime(time.Now())
 	endChargeReport.EndSOC = moduleData.BatterySoc
+	endChargeReport.EndCurrent = moduleData.BatteryCurrent
 	endChargeReport.IsEnd = true
 
 	return *endChargeReport

@@ -962,8 +962,20 @@ func (db *vehiclerepository) UpdateBMSDistanceTravelled(batteryData []models.Bat
 
 }
 
+// check for battery cycle data, fetch all battery from last 7 days
 func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMain, error) {
 	fmt.Println("start fetching all battery data...")
+
+	currentDate := time.Now()
+	last7Days := currentDate.AddDate(0, 0, -7)
+
+	filter := bson.D{
+		bson.E{Key: "created_at", Value: bson.D{
+			bson.E{Key: "$gte", Value: primitive.NewDateTimeFromTime(last7Days)},
+			bson.E{Key: "$lte", Value: primitive.NewDateTimeFromTime(currentDate)},
+		}},
+	}
+
 	opts := options.Find().SetProjection(
 		bson.D{
 			bson.E{Key: "bms_id", Value: 1},
@@ -980,7 +992,7 @@ func (db *vehiclerepository) CheckForBatteryCycle() ([]models.BatteryHardwareMai
 			bson.E{Key: "odo_meter", Value: 1},
 		},
 	)
-	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), bson.M{}, opts)
+	cursor, curErr := db.batteryMainConnection.Find(context.TODO(), filter, opts)
 	if curErr != nil {
 		return nil, curErr
 	}
@@ -1097,7 +1109,7 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 		} else {
 			fmt.Println("Preparing to end a cycle for : ", batteryData[i].BmsID)
 			var totalSpeed int
-			var avgSpeed int
+			var avgSpeed float64
 			var topSpeed int = -100000000
 			var lowSpeed int = 10000000000
 
@@ -1128,47 +1140,61 @@ func (db *vehiclerepository) UpdateBatteryCycle(batteryData []models.BatteryHard
 					maxSoc = batteryData[i].MinMaxSoc[j]
 					maxSocChanged = true
 				}
-
 			}
 
 			if totalSpeed > 0 && len(batteryData[i].SpeedCal) > 0 {
-				avgSpeed = totalSpeed / len(batteryData[i].SpeedCal)
+				avgSpeed = float64(totalSpeed) / float64(len(batteryData[i].SpeedCal))
 			}
 
-			// km calculater
+			// km calculate for all condition
+			kmT, _ := db.GetBatteryCycleLocations(batteryCycle.BMSID)
+			batteryCycle.KMTravelled = kmT
+			batteryCycle.EndTime = primitive.NewDateTimeFromTime(time.Now())
+			batteryCycle.IsEnd = true
+
 			if topSpeedChanged && lowSpeedChanged && minSocChanged && maxSocChanged {
 				fmt.Println("Preparing a for create cycle history...")
-				kmT, _ := db.GetBatteryCycleLocations(batteryCycle.BMSID)
-				batteryCycle.KMTravelled = kmT
 				batteryCycle.MinSoc = minSoc
 				batteryCycle.MaxSoc = maxSoc
 				batteryCycle.AvgSpeed = avgSpeed
 				batteryCycle.TopSpeed = topSpeed
 				batteryCycle.LowestSpeed = lowSpeed
-				batteryCycle.EndTime = primitive.NewDateTimeFromTime(time.Now())
-				batteryCycle.IsEnd = true
-
-				// set value to end odo meter take current ODOMeter
-				if batteryData[i].ODOMeter > 0 {
-					endODO := batteryData[i].ODOMeter / 1000
-					endODORes := endODO - kmT
-					batteryCycle.EndODO = endODORes
-				}
-
-				// set value to DOD using SOC
-				strSoc := strconv.Itoa(batteryData[i].BatterySoc)
-				batteryCycle.DOD = strSoc + "%"
-
-				// create cycle history
-				res, err := db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
-				fmt.Println("Error from history created : ", err, " and result : ", res.InsertedID)
-				// remove cycle temp data
-				db.RemoveCycleTempData(batteryCycle.BMSID)
-
-				bmsIDS = append(bmsIDS, batteryData[i].BmsID)
 			} else {
-				fmt.Println("Failed to prepare a to create a history with bms id : ", batteryData[i].BmsID)
+				if minSocChanged {
+					batteryCycle.MinSoc = minSoc
+				}
+				if maxSocChanged {
+					batteryCycle.MaxSoc = maxSoc
+				}
+				if lowSpeedChanged {
+					batteryCycle.LowestSpeed = lowSpeed
+				}
+				if topSpeedChanged {
+					batteryCycle.TopSpeed = topSpeed
+				}
 			}
+
+			// set value to end odo meter take current ODOMeter // old logic
+			// if batteryData[i].ODOMeter > 0 {
+			// 	endODO := batteryData[i].ODOMeter / 1000
+			// 	endODORes := endODO - kmT
+			// 	batteryCycle.EndODO = endODORes
+			// }
+
+			// set value to end odo sum of startODO and KMT
+			batteryCycle.EndODO = batteryCycle.StartODO + kmT
+
+			// set value to DOD using SOC
+			strSoc := strconv.Itoa(batteryData[i].BatterySoc)
+			batteryCycle.DOD = strSoc + "%"
+
+			// create cycle history
+			res, err := db.batteryCycleHistoryConnection.InsertOne(context.TODO(), batteryCycle)
+			fmt.Println("Error from history created : ", err, " and result : ", res.InsertedID)
+			// remove cycle temp data
+			db.RemoveCycleTempData(batteryCycle.BMSID)
+
+			bmsIDS = append(bmsIDS, batteryData[i].BmsID)
 		}
 	}
 
